@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Upload</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>Upload</h2>
+
+<div class="box">
+<input type="file" id="fileInput" webkitdirectory multiple>
+<br>
+<button id="uploadBtn">Compress & Upload</button>
+<p id="status"></p>
+</div>
+
+<script>
+
+const input = document.getElementById("fileInput");
+const btn = document.getElementById("uploadBtn");
+const status = document.getElementById("status");
+
+btn.onclick = async () => {
+
+  const files = input.files;
+
+  if (!files.length) {
+    status.textContent = "Select a directory";
+    return;
+  }
+
+  status.textContent = `Reading ${files.length} files...`;
+
+  let combined = "";
+
+  for (const file of files) {
+
+    const text = await file.text();
+
+    combined +=
+`---FILE:${file.webkitRelativePath}---
+${text}
+---END---
+`;
+
+  }
+
+  status.textContent = "Compressing...";
+
+  const blob = new Blob([combined]);
+
+  const cs = new CompressionStream("gzip");
+
+  const compressedStream = blob.stream().pipeThrough(cs);
+
+  const compressedBlob = await new Response(compressedStream).blob();
+
+  status.textContent =
+    `Compressed ${blob.size} → ${compressedBlob.size} bytes`;
+
+  status.textContent += " Uploading...";
+
+  const res = await fetch("/api/upload", {
+    method: "post",
+    body: compressedBlob,
+    headers: {
+	"Content-Encoding": "gzip",
+	"Content-Type": "application/octet-stream"
+    }
+  });
+
+  status.textContent += res.ok ? " ✓ Done" : " ✗ Failed";
+};
+
+</script>
+
+</body>
+</html>
