@@ -1,11 +1,14 @@
 package main
 
 import (
+	"io/fs"
 	"net/http"
+	"ocl/web"
 )
 
 func main() {
-	http.Handle("GET /", http.FileServer(http.Dir("./web")))
+	sub, _ := fs.Sub(web.Static, "static")
+	http.Handle("GET /", http.FileServer(http.FS(sub)))
 
 	http.HandleFunc("GET  /api/logs",      routeAPILogs)
 	http.HandleFunc("GET  /api/logs/{ID}", routeAPILogsID)

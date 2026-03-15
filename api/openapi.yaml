@@ -11,7 +11,7 @@ paths:
           description: Successful response
   /api/upload:
     post:
-      description: Upload log report
+      description: Upload log
       responses:
         '200':
           description: Report successfully uploaded
