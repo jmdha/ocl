@@ -1,0 +1,17 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: OCL 
+paths:
+  /:
+    get:
+      description: Index page              
+      responses:
+        '200':
+          description: Successful response
+  /api/upload:
+    post:
+      description: Upload log report
+      responses:
+        '200':
+          description: Report successfully uploaded
