@@ -2,10 +2,13 @@ package main
 
 import (
 	"compress/gzip"
-	"io"
-	"log"
+	"fmt"
 	"net/http"
+	"sync"
 )
+
+var queue_mu  sync.Mutex
+var queue_itr uint64
 
 func routeAPILogs(w http.ResponseWriter, r *http.Request) {
 }
@@ -18,30 +21,28 @@ func routeAPIUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "only POST allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	var reader io.ReadCloser
-	var err error
 
-	log.Println("Content-Encoding:", r.Header.Get("Content-Encoding"))
-
-	switch r.Header.Get("Content-Encoding") {
-	case "gzip":
-		reader, err = gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, "invalid gzip", http.StatusBadRequest)
-			return
-		}
-		defer reader.Close()
-	default:
-		reader = r.Body
+	if r.Header.Get("Content-Encoding") != "gzip" {
+		http.Error(w, "invalid encoding", http.StatusBadRequest)
+		return
 	}
-	defer r.Body.Close()
 
-	_, err = io.ReadAll(reader)
+	reader, err := gzip.NewReader(r.Body)
 	if err != nil {
-		http.Error(w, "failed to read body", http.StatusInternalServerError)
+		http.Error(w, "invalid gzip", http.StatusBadRequest)
+		return
+	}
+
+	queue_mu.Lock()
+	idx := queue_itr + 1
+	queue_itr = queue_itr + 1
+	queue_mu.Unlock()
+
+	err = CompressToFile(reader, fmt.Sprintf("queue/%d", idx))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to save file %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
 }

@@ -1,12 +1,21 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"ocl/web"
 )
 
 func main() {
+	var addr string
+	var port int
+
+	flag.StringVar(&addr, "a", "localhost", "address to operate on")
+	flag.IntVar(&port,    "p", 8080,        "port to operate on")
+	flag.Parse()
+
 	sub, _ := fs.Sub(web.Static, "static")
 	http.Handle("GET /", http.FileServer(http.FS(sub)))
 
@@ -14,5 +23,5 @@ func main() {
 	http.HandleFunc("GET  /api/logs/{ID}", routeAPILogsID)
 	http.HandleFunc("POST /api/upload",    routeAPIUpload)
 	
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), nil)
 }
