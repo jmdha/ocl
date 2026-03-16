@@ -1,10 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
 <link rel="stylesheet" href="style.css">
-<title>Open Combat Logs</title>
+<title>open combat logs</title>
 </head>
 <body>
-
+	<header>
+		<div class="header-left">
+			<a href="/" class="active">home</a>
+			<a href="/wow">wow</a>
+			<a href="/fellowship">fellowship</a>
+			<a href="/ff14">ff14</a>
+		</div>
+		<div class="header-right">
+			<iframe
+				src="/upload.html"
+				title="upload button"
+				id="upload"
+				scrolling="no"
+				height="0"
+				width="0"
+				border="0"
+			></iframe>
+		</div>
+	</header>
 </body>
+<script>
+	function resizeIframe(iframe) {
+		const doc = iframe.contentDocument || iframe.contentWindow.document;
+		const btn = doc.querySelector('#uploadBtn');
+		const rect = btn.getBoundingClientRect();
+		iframe.style.width  = rect.width  + 'px';
+		iframe.style.height = rect.height + 'px';
+	}
+	const uploadFrame = document.getElementById('upload')
+	uploadFrame.addEventListener('load', () => resizeIframe(uploadFrame))
+</script>
 </html>
