@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -15,7 +14,7 @@ import (
 func CompressToFile(src io.Reader, path string, opts ...zstd.EOption) error {
 	err := os.MkdirAll(filepath.Dir(path), 0755)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("making target directory: %w", err)
 	}
 
 	// Create (or truncate) the destination file

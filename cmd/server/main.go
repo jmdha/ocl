@@ -19,9 +19,11 @@ func main() {
 	sub, _ := fs.Sub(web.Static, "static")
 	http.Handle("GET /", http.FileServer(http.FS(sub)))
 
-	http.HandleFunc("GET  /api/logs",      routeAPILogs)
-	http.HandleFunc("GET  /api/logs/{ID}", routeAPILogsID)
-	http.HandleFunc("POST /api/upload",    routeAPIUpload)
+	http.HandleFunc("GET  /api/logs",    routeAPILogs)
+	http.HandleFunc("GET  /api/runs",    routeAPIRuns)
+	http.HandleFunc("GET  /api/players", routeAPIPlayers)
+	http.HandleFunc("POST /api/upload",  routeAPIUpload)
+
 	
 	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), nil)
 }

@@ -2,38 +2,91 @@
 <html>
 <head>
 <link rel="stylesheet" href="style.css">
+<link rel="preload" href="/api/logs"     as="fetch" crossorigin>
+<link rel="preload" href="/api/runs"     as="fetch" crossorigin>
+<link rel="preload" href="/api/players"  as="fetch" crossorigin>
 <title>open combat logs</title>
 </head>
 <body>
-	<header>
-		<div class="header-left">
-			<a href="/" class="active">home</a>
-			<a href="/wow">wow</a>
-			<a href="/fellowship">fellowship</a>
-			<a href="/ff14">ff14</a>
-		</div>
-		<div class="header-right">
-			<iframe
-				src="/upload.html"
-				title="upload button"
-				id="upload"
-				scrolling="no"
-				height="0"
-				width="0"
-				border="0"
-			></iframe>
-		</div>
-	</header>
+<nav>
+	<a href="#">wow</a>
+	<a href="#">fellowship</a>
+	<a href="#">ff14</a>
+</nav>
+
+<table class="totals">
+	<thead>
+		<tr>
+			<th>Total Logs</th>
+			<th>Total Runs</th>
+			<th>Total Players</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>27</td>
+			<td>27</td>
+			<td>27</td>
+		</tr>
+	</tbody>
+<caption>across 3 games</caption>
+</table>
+
+<section>
+	<h2>World of Warcraft</h2>
+	<dl>
+		<div><dt>Logs</dt><dd>27</dd></div>
+		<div><dt>Runs</dt><dd>27</dd></div>
+		<div><dt>Players</dt><dd>27</dd></div>
+	</dl>
+</section>
+
+<section>
+	<h2>Fellowship</h2>
+	<dl>
+		<div><dt>Logs</dt><dd>—</dd></div>
+		<div><dt>Runs</dt><dd>—</dd></div>
+		<div><dt>Players</dt><dd>—</dd></div>
+	</dl>
+</section>
+
+<section>
+	<h2>Final Fantasy 14</h2>
+	<dl>
+		<div><dt>Logs</dt><dd>—</dd></div>
+		<div><dt>Runs</dt><dd>—</dd></div>
+		<div><dt>Players</dt><dd>—</dd></div>
+	</dl>
+</section>
 </body>
 <script>
-	function resizeIframe(iframe) {
+	async function resizeIframe(iframe) {
 		const doc = iframe.contentDocument || iframe.contentWindow.document;
 		const btn = doc.querySelector('#uploadBtn');
 		const rect = btn.getBoundingClientRect();
 		iframe.style.width  = rect.width  + 'px';
 		iframe.style.height = rect.height + 'px';
 	}
+	async function setFromAPI(elementId, url) {
+		const response = await fetch(url);
+		
+		if (!response.ok) {
+			throw new Error(`HTTP error: ${response.status}`);
+		}
+		
+		const data = await response.json();
+		const element = document.getElementById(elementId);
+		
+		if (!element) {
+			throw new Error(`Element with id "${elementId}" not found`);
+		}
+
+		element.textContent = data;
+	}
 	const uploadFrame = document.getElementById('upload')
 	uploadFrame.addEventListener('load', () => resizeIframe(uploadFrame))
+	setFromAPI("wow-logs",    "/api/logs").catch(console.error);
+	setFromAPI("wow-runs",    "/api/runs").catch(console.error);
+	setFromAPI("wow-players", "/api/players").catch(console.error);
 </script>
 </html>

@@ -1,20 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Barlow:wght@400;500;600&display=swap');
+
 * {
+	box-sizing: border-box;
 	margin: 0;
+	padding: 0;
 }
-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
+
+body {
+	font-family: 'Barlow', sans-serif;
+	padding: 2rem 1.5rem;
 }
-iframe {
-	display: block;
-	border: 0;
-}
-.header-left {
+
+nav {
 	display: flex;
 	gap: 1.5rem;
-	align-items: center;
+	margin-bottom: 1.5rem;
 }
-.header-right {
-	margin-left: auto;
+
+nav a {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--color-text-info);
+	text-decoration: none;
+}
+
+nav a:hover {
+	text-decoration: underline;
+}
+
+table.totals {
+	width: 100%;
+	border-collapse: collapse;
+	background: var(--color-background-secondary);
+	border: 0.5px solid var(--color-border-secondary);
+	border-radius: var(--border-radius-lg);
+	margin-bottom: 2rem;
+	overflow: hidden;
+}
+
+table.totals th, table.totals td {
+	text-align: left;
+	padding: 1rem 1.5rem;
+	border-right: 0.5px solid var(--color-border-tertiary);
+}
+
+table.totals th:last-child, table.totals td:last-child {
+	border-right: none;
+}
+
+table.totals th {
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--color-text-tertiary);
+	padding-bottom: 4px;
+}
+
+table.totals td {
+	font-size: 26px;
+	font-weight: 600;
+	color: #c9a84c;
+	font-variant-numeric: tabular-nums;
+	padding-top: 0;
+}
+
+table.totals caption {
+	font-size: 11px;
+	color: var(--color-text-tertiary);
+	text-align: left;
+	padding: 0 1.5rem 0.5rem;
+	caption-side: bottom;
+}
+
+section {
+	margin-bottom: 2rem;
+}
+
+section:not(:last-of-type) {
+	padding-bottom: 2rem;
+	border-bottom: 0.5px solid var(--color-border-tertiary);
+}
+
+h2 {
+	font-family: 'Cinzel', serif;
+	font-size: 24px;
+	font-weight: 700;
+	color: var(--color-text-primary);
+	margin-bottom: 0.75rem;
+}
+
+dl {
+	display: flex;
+	gap: 2rem;
+}
+  
+dt {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--color-text-tertiary);
+	margin-bottom: 2px;
+}
+
+dd {
+	font-size: 20px;
+	font-weight: 600;
+	color: #c9a84c;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
 }

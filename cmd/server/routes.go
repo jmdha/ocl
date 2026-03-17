@@ -11,6 +11,30 @@ var queue_mu  sync.Mutex
 var queue_itr uint64
 
 func routeAPILogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fmt.Fprintf(w, "%d", 27)
+}
+
+func routeAPIRuns(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fmt.Fprintf(w, "%d", 27)
+}
+
+func routeAPIPlayers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fmt.Fprintf(w, "%d", 27)
 }
 
 func routeAPILogsID(w http.ResponseWriter, r *http.Request) {
