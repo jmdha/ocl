@@ -2,9 +2,6 @@
 <html>
 <head>
 <link rel="stylesheet" href="style.css">
-<link rel="preload" href="/api/logs"     as="fetch" crossorigin>
-<link rel="preload" href="/api/runs"     as="fetch" crossorigin>
-<link rel="preload" href="/api/players"  as="fetch" crossorigin>
 <title>open combat logs</title>
 </head>
 <body>
@@ -61,23 +58,62 @@
 		</tr>
 	</tbody>
 </table>
+
+<h2>Fellowship</h2>
+<table class="totals">
+	<thead>
+		<tr>
+			<th>Logs</th>
+			<th>Runs</th>
+			<th>Players</th>
+			<th>Queue</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td id="fellowship-logs">N/A</td>
+			<td id="fellowship-runs">N/A</td>
+			<td id="fellowship-players">N/A</td>
+			<td id="fellowship-queue">N/A</td>
+		</tr>
+	</tbody>
+</table>
+
+<h2>Final Fantasy 14</h2>
+<table class="totals">
+	<thead>
+		<tr>
+			<th>Logs</th>
+			<th>Runs</th>
+			<th>Players</th>
+			<th>Queue</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td id="ff14-logs">N/A</td>
+			<td id="ff14-runs">N/A</td>
+			<td id="ff14-players">N/A</td>
+			<td id="ff14-queue">N/A</td>
+		</tr>
+	</tbody>
+</table>
 </body>
 <script>
 	async function resizeIframe(iframe) {
-	    const doc = iframe.contentDocument || iframe.contentWindow.document;
-	    
-	    // Wait for the inner document's layout to be ready
-	    await new Promise(resolve => iframe.contentWindow.requestAnimationFrame(resolve));
-	    
-	    const btn = doc.querySelector('#uploadBtn');
-	    if (!btn) {
-	        console.error('Could not find #uploadBtn inside iframe');
-	        return;
-	    }
-	    
-	    const rect = btn.getBoundingClientRect();
-	    iframe.style.width  = rect.width  + 'px';
-	    iframe.style.height = rect.height + 'px';
+		const doc = iframe.contentDocument || iframe.contentWindow.document;
+		
+		await new Promise(resolve => iframe.contentWindow.requestAnimationFrame(resolve));
+		
+		const btn = doc.querySelector('#uploadBtn');
+		if (!btn) {
+			console.error('Could not find #uploadBtn inside iframe');
+			return;
+		}
+		
+		const rect = btn.getBoundingClientRect();
+		iframe.style.width  = rect.width  + 'px';
+		iframe.style.height = rect.height + 'px';
 	}
 	async function setFromAPI(elementId, url) {
 		const response = await fetch(url);
@@ -98,14 +134,22 @@
 	const uploadFrame = document.getElementById('upload')
 	uploadFrame.addEventListener('load', () => resizeIframe(uploadFrame))
   	const endpoints = [
-  		['total-logs',    '/api/logs'],
-  		['total-runs',    '/api/runs'],
-  		['total-players', '/api/players'],
-  		['total-queue',   '/api/queue'],
-  		['wow-logs',      '/api/logs?game=wow'],
-  		['wow-runs',      '/api/runs?game=wow'],
-  		['wow-players',   '/api/players?game=wow'],
-  		['wow-queue',     '/api/queue?game=wow'],
+  		['total-logs',         '/api/logs'],
+  		['total-runs',         '/api/runs'],
+  		['total-players',      '/api/players'],
+  		['total-queue',        '/api/queue'],
+  		['wow-logs',           '/api/logs?game=wow'],
+  		['wow-runs',           '/api/runs?game=wow'],
+  		['wow-players',        '/api/players?game=wow'],
+  		['wow-queue',          '/api/queue?game=wow'],
+  		['fellowship-logs',    '/api/logs?game=fellowship'],
+  		['fellowship-runs',    '/api/runs?game=fellowship'],
+  		['fellowship-players', '/api/players?game=fellowship'],
+  		['fellowship-queue',   '/api/queue?game=fellowship'],
+  		['ff14-logs',          '/api/logs?game=ff14'],
+  		['ff14-runs',          '/api/runs?game=ff14'],
+  		['ff14-players',       '/api/players?game=ff14'],
+  		['ff14-queue',         '/api/queue?game=ff14'],
   	];
  
   	for (const [id, url] of endpoints) {
