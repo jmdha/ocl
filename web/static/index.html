@@ -43,35 +43,25 @@
 <caption>across 3 games</caption>
 </table>
 
-<section>
-	<h2>World of Warcraft</h2>
-	<dl>
-		<div><dt>Logs</dt><dd id="wow-logs">N/A</dd></div>
-		<div><dt>Runs</dt><dd id="wow-runs">N/A</dd></div>
-		<div><dt>Players</dt><dd id="wow-players">N/A</dd></div>
-		<div><dt>Queue</dt><dd id="wow-queue">N/A</dd></div>
-	</dl>
-</section>
-
-<section>
-	<h2>Fellowship</h2>
-	<dl>
-		<div><dt>Logs</dt><dd>N/A</dd></div>
-		<div><dt>Runs</dt><dd>N/A</dd></div>
-		<div><dt>Players</dt><dd>N/A</dd></div>
-		<div><dt>Queue</dt><dd>N/A</dd></div>
-	</dl>
-</section>
-
-<section>
-	<h2>Final Fantasy 14</h2>
-	<dl>
-		<div><dt>Logs</dt><dd>N/A</dd></div>
-		<div><dt>Runs</dt><dd>N/A</dd></div>
-		<div><dt>Players</dt><dd>N/A</dd></div>
-		<div><dt>Queue</dt><dd>N/A</dd></div>
-	</dl>
-</section>
+<h2>World of Warcraft</h2>
+<table class="totals">
+	<thead>
+		<tr>
+			<th>Logs</th>
+			<th>Runs</th>
+			<th>Players</th>
+			<th>Queue</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td id="wow-logs">N/A</td>
+			<td id="wow-runs">N/A</td>
+			<td id="wow-players">N/A</td>
+			<td id="wow-queue">N/A</td>
+		</tr>
+	</tbody>
+</table>
 </body>
 <script>
 	async function resizeIframe(iframe) {
@@ -108,13 +98,19 @@
 	}
 	const uploadFrame = document.getElementById('upload')
 	uploadFrame.addEventListener('load', () => resizeIframe(uploadFrame))
-	setFromAPI("total-logs",    "/api/logs").catch(console.error);
-	setFromAPI("total-runs",    "/api/runs").catch(console.error);
-	setFromAPI("total-players", "/api/players").catch(console.error);
-	setFromAPI("total-queue",   "/api/queue").catch(console.error);
-	setFromAPI("wow-logs",      "/api/logs?game=wow").catch(console.error);
-	setFromAPI("wow-runs",      "/api/runs?game=wow").catch(console.error);
-	setFromAPI("wow-players",   "/api/players?game=wow").catch(console.error);
-	setFromAPI("wow-queue",     "/api/queue?game=wow").catch(console.error);
+  	const endpoints = [
+  		['total-logs',    '/api/logs'],
+  		['total-runs',    '/api/runs'],
+  		['total-players', '/api/players'],
+  		['total-queue',   '/api/queue'],
+  		['wow-logs',      '/api/logs?game=wow'],
+  		['wow-runs',      '/api/runs?game=wow'],
+  		['wow-players',   '/api/players?game=wow'],
+  		['wow-queue',     '/api/queue?game=wow'],
+  	];
+ 
+  	for (const [id, url] of endpoints) {
+  		setFromAPI(id, url).catch(console.error);
+  	}
 </script>
 </html>
