@@ -22,8 +22,8 @@ func main() {
 	http.HandleFunc("GET  /api/logs",    routeAPILogs)
 	http.HandleFunc("GET  /api/runs",    routeAPIRuns)
 	http.HandleFunc("GET  /api/players", routeAPIPlayers)
+	http.HandleFunc("GET  /api/queue",   routeAPIQueue)
 	http.HandleFunc("POST /api/upload",  routeAPIUpload)
-
 	
 	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), nil)
 }

@@ -12,6 +12,15 @@
 	<a href="#">wow</a>
 	<a href="#">fellowship</a>
 	<a href="#">ff14</a>
+	<iframe
+				src="/upload.html"
+				title="upload button"
+				id="upload"
+				scrolling="no"
+				height="0"
+				width="0"
+				border="0"
+	></iframe>
 </nav>
 
 <table class="totals">
@@ -20,13 +29,15 @@
 			<th>Total Logs</th>
 			<th>Total Runs</th>
 			<th>Total Players</th>
+			<th>Queue</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr>
-			<td>27</td>
-			<td>27</td>
-			<td>27</td>
+			<td id="total-logs">N/A</td>
+			<td id="total-runs">N/A</td>
+			<td id="total-players">N/A</td>
+			<td id="total-queue">N/A</td>
 		</tr>
 	</tbody>
 <caption>across 3 games</caption>
@@ -35,37 +46,49 @@
 <section>
 	<h2>World of Warcraft</h2>
 	<dl>
-		<div><dt>Logs</dt><dd>27</dd></div>
-		<div><dt>Runs</dt><dd>27</dd></div>
-		<div><dt>Players</dt><dd>27</dd></div>
+		<div><dt>Logs</dt><dd id="wow-logs">N/A</dd></div>
+		<div><dt>Runs</dt><dd id="wow-runs">N/A</dd></div>
+		<div><dt>Players</dt><dd id="wow-players">N/A</dd></div>
+		<div><dt>Queue</dt><dd id="wow-queue">N/A</dd></div>
 	</dl>
 </section>
 
 <section>
 	<h2>Fellowship</h2>
 	<dl>
-		<div><dt>Logs</dt><dd>—</dd></div>
-		<div><dt>Runs</dt><dd>—</dd></div>
-		<div><dt>Players</dt><dd>—</dd></div>
+		<div><dt>Logs</dt><dd>N/A</dd></div>
+		<div><dt>Runs</dt><dd>N/A</dd></div>
+		<div><dt>Players</dt><dd>N/A</dd></div>
+		<div><dt>Queue</dt><dd>N/A</dd></div>
 	</dl>
 </section>
 
 <section>
 	<h2>Final Fantasy 14</h2>
 	<dl>
-		<div><dt>Logs</dt><dd>—</dd></div>
-		<div><dt>Runs</dt><dd>—</dd></div>
-		<div><dt>Players</dt><dd>—</dd></div>
+		<div><dt>Logs</dt><dd>N/A</dd></div>
+		<div><dt>Runs</dt><dd>N/A</dd></div>
+		<div><dt>Players</dt><dd>N/A</dd></div>
+		<div><dt>Queue</dt><dd>N/A</dd></div>
 	</dl>
 </section>
 </body>
 <script>
 	async function resizeIframe(iframe) {
-		const doc = iframe.contentDocument || iframe.contentWindow.document;
-		const btn = doc.querySelector('#uploadBtn');
-		const rect = btn.getBoundingClientRect();
-		iframe.style.width  = rect.width  + 'px';
-		iframe.style.height = rect.height + 'px';
+	    const doc = iframe.contentDocument || iframe.contentWindow.document;
+	    
+	    // Wait for the inner document's layout to be ready
+	    await new Promise(resolve => iframe.contentWindow.requestAnimationFrame(resolve));
+	    
+	    const btn = doc.querySelector('#uploadBtn');
+	    if (!btn) {
+	        console.error('Could not find #uploadBtn inside iframe');
+	        return;
+	    }
+	    
+	    const rect = btn.getBoundingClientRect();
+	    iframe.style.width  = rect.width  + 'px';
+	    iframe.style.height = rect.height + 'px';
 	}
 	async function setFromAPI(elementId, url) {
 		const response = await fetch(url);
@@ -85,8 +108,13 @@
 	}
 	const uploadFrame = document.getElementById('upload')
 	uploadFrame.addEventListener('load', () => resizeIframe(uploadFrame))
-	setFromAPI("wow-logs",    "/api/logs").catch(console.error);
-	setFromAPI("wow-runs",    "/api/runs").catch(console.error);
-	setFromAPI("wow-players", "/api/players").catch(console.error);
+	setFromAPI("total-logs",    "/api/logs").catch(console.error);
+	setFromAPI("total-runs",    "/api/runs").catch(console.error);
+	setFromAPI("total-players", "/api/players").catch(console.error);
+	setFromAPI("total-queue",   "/api/queue").catch(console.error);
+	setFromAPI("wow-logs",      "/api/logs?game=wow").catch(console.error);
+	setFromAPI("wow-runs",      "/api/runs?game=wow").catch(console.error);
+	setFromAPI("wow-players",   "/api/players?game=wow").catch(console.error);
+	setFromAPI("wow-queue",     "/api/queue?game=wow").catch(console.error);
 </script>
 </html>

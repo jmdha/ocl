@@ -7,6 +7,19 @@ html, body {
 	width: fit-content;
 	height: fit-content;
 	background: transparent;
+	padding: 0;
+}
+
+#uploadBtn {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	cursor: pointer;
+	background: #c9a84c;
+	color: #fff;
+	border-radius: var(--border-radius-md);
+	padding: 4px 10px;
 }
 </style>
 <meta charset="UTF-8">
@@ -14,7 +27,7 @@ html, body {
 </head>
 <body>
 	<input type="file" id="fileInput" webkitdirectory multiple style="display:none">
-	<button id="uploadBtn">Upload</button>
+	<span id="uploadBtn">Upload</span>
 <script>
 	const input = document.getElementById("fileInput");
 	const btn = document.getElementById("uploadBtn");

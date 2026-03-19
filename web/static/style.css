@@ -11,6 +11,13 @@ body {
 	padding: 2rem 1.5rem;
 }
 
+iframe {
+	display: block;
+	margin: 0;
+	padding 0;
+	border: 0;
+}
+
 nav {
 	display: flex;
 	gap: 1.5rem;
@@ -28,6 +35,10 @@ nav a {
 
 nav a:hover {
 	text-decoration: underline;
+}
+
+nav iframe {
+	margin-left: auto;
 }
 
 table.totals {

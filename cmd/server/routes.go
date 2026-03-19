@@ -70,3 +70,8 @@ func routeAPIUpload(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func routeAPIQueue(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%d", queue_itr)
+	w.WriteHeader(http.StatusOK)
+}
