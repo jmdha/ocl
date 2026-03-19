@@ -78,11 +78,3 @@ table.totals td {
 	font-variant-numeric: tabular-nums;
 	padding-top: 0;
 }
-
-table.totals caption {
-	font-size: 11px;
-	color: var(--color-text-tertiary);
-	text-align: left;
-	padding: 0 1.5rem 0.5rem;
-	caption-side: bottom;
-}
