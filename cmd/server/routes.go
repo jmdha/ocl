@@ -4,11 +4,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"net/http"
-	"sync"
 )
-
-var queue_mu  sync.Mutex
-var queue_itr uint64
 
 func routeAPILogs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -51,20 +47,9 @@ func routeAPIUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reader, err := gzip.NewReader(r.Body)
+	_, err := gzip.NewReader(r.Body)
 	if err != nil {
 		http.Error(w, "invalid gzip", http.StatusBadRequest)
-		return
-	}
-
-	queue_mu.Lock()
-	idx := queue_itr + 1
-	queue_itr = queue_itr + 1
-	queue_mu.Unlock()
-
-	err = CompressToFile(reader, fmt.Sprintf("queue/%d", idx))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to save file %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -72,6 +57,6 @@ func routeAPIUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func routeAPIQueue(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%d", queue_itr)
+	fmt.Fprintf(w, "%d", 0)
 	w.WriteHeader(http.StatusOK)
 }

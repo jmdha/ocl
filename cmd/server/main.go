@@ -13,17 +13,17 @@ func main() {
 	var port int
 
 	flag.StringVar(&addr, "a", "localhost", "address to operate on")
-	flag.IntVar(&port,    "p", 8080,        "port to operate on")
+	flag.IntVar(&port, "p", 8080, "port to operate on")
 	flag.Parse()
 
 	sub, _ := fs.Sub(web.Static, "static")
 	http.Handle("GET /", http.FileServer(http.FS(sub)))
 
-	http.HandleFunc("GET  /api/logs",    routeAPILogs)
-	http.HandleFunc("GET  /api/runs",    routeAPIRuns)
+	http.HandleFunc("GET  /api/logs", routeAPILogs)
+	http.HandleFunc("GET  /api/runs", routeAPIRuns)
 	http.HandleFunc("GET  /api/players", routeAPIPlayers)
-	http.HandleFunc("GET  /api/queue",   routeAPIQueue)
-	http.HandleFunc("POST /api/upload",  routeAPIUpload)
-	
+	http.HandleFunc("GET  /api/queue", routeAPIQueue)
+	http.HandleFunc("POST /api/upload", routeAPIUpload)
+
 	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), nil)
 }
