@@ -13,9 +13,11 @@ import (
 var regexpFormat = regexp.MustCompile(`(.+ .+)  ([a-zA-Z0-9_]+),(.+)`)
 var regexpTime = regexp.MustCompile(`(\d+)\/(\d+)\/(\d+) (\d+):(\d+):(\d+).(\d+)`)
 var regexpVersion = regexp.MustCompile(`(\d+),ADVANCED_LOG_ENABLED,(\d),BUILD_VERSION,(\d+).(\d+).(\d+),PROJECT_ID,(\d+)`)
+var regexpZoneChange = regexp.MustCompile(`(\d+),\"(.*)\",(\d+)`)
 
 var eventMap = map[string]func(string) (Event, error){
 	"COMBAT_LOG_VERSION": parseVersion,
+	"ZONE_CHANGE":        parseZoneChange,
 }
 
 func ParseFile(path string) ([]time.Time, []Event, error) {
@@ -160,5 +162,31 @@ func parseVersion(str string) (Event, error) {
 		Patch:    uint(patch),
 		Project:  uint(project),
 		Advanced: advanced,
+	}, nil
+}
+
+func parseZoneChange(str string) (Event, error) {
+	match := regexpZoneChange.FindStringSubmatch(str)
+	fmt.Println(match)
+	if len(match) < 3 {
+		return nil, errors.New("invalid zone change format")
+	}
+
+	instance, err := strconv.Atoi(match[1])
+	if err != nil || instance < 0 {
+		return nil, errors.New("invalid instance")
+	}
+
+	zone := match[2]
+
+	difficulty, err := strconv.Atoi(match[3])
+	if err != nil || difficulty < 0 {
+		return nil, errors.New("invalid difficulty")
+	}
+
+	return EventZoneChange{
+		Instance:   uint(instance),
+		Zone:       zone,
+		Difficulty: uint(difficulty),
 	}, nil
 }
