@@ -19,7 +19,7 @@ func main() {
 
 	flag.StringVar(&addr, "a", "localhost", "address to operate on")
 	flag.IntVar(&port, "p", 8080, "port to operate on")
-	flag.StringVar(&conn, "c", "ocl.sqlite", "path to db")
+	flag.StringVar(&conn, "c", "file:ocl.sqlite", "path to db")
 	flag.Parse()
 
 	db, err := sql.Open("sqlite3", fmt.Sprintf("%s", conn))
