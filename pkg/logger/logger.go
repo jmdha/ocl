@@ -61,7 +61,7 @@ func (l *Logger) Middleware(next http.Handler) http.Handler {
 				r.Method,
 				r.URL.Path,
 				r.URL.RawQuery,
-				r.RemoteAddr,
+				getIP(r),
 				r.UserAgent(),
 				dur,
 				wrapper.status,
