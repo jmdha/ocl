@@ -4,15 +4,17 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
-	"io/fs"
+	"html/template"
 	"log"
 	"net/http"
 	"ocl/pkg/logger"
 	"ocl/web"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var DB *sql.DB
+var Templates *template.Template
 
 func main() {
 	var addr string
@@ -25,17 +27,11 @@ func main() {
 	flag.Parse()
 
 	db_init(conn)
-
-	sub, _ := fs.Sub(web.Static, "static")
+	Templates = template.Must(template.ParseFS(web.Templates, "templates/*.html"))
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /", http.FileServer(http.FS(sub)))
-	mux.HandleFunc("GET  /api/logs", routeAPILogs)
-	mux.HandleFunc("GET  /api/runs", routeAPIRuns)
-	mux.HandleFunc("GET  /api/players", routeAPIPlayers)
-	mux.HandleFunc("GET  /api/queue", routeAPIQueue)
-	mux.HandleFunc("POST /api/upload", routeAPIUpload)
-	mux.HandleFunc("GET /api/metrics/routes", routeAPIMetricsRoutes)
+	mux.HandleFunc("GET /", routeIndex)
+	mux.HandleFunc("GET /metrics", routeMetrics)
 
 	l, err := logger.NewLogger(DB)
 	if err != nil {

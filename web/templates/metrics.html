@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><title>Open Combat Logs</title></head>
+<body>
+<table>
+	<thead>
+		<th>method</th>
+		<th>route</th>
+		<th>calls</th>
+		<th>avg ms</th>
+	</thead>
+	<tbody>
+		{{range .}}
+			<tr>
+				<td>{{.Method}}</td>
+				<td>{{.Path}}</td>
+				<td>{{.Calls}}</td>
+				<td>{{.Avg}}</td>
+			<tr>
+		{{end}}
+	</tbody>
+</table>
+</body>
+</html>
