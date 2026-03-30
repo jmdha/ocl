@@ -41,7 +41,6 @@ type responseWriter struct {
 
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
-	rw.ResponseWriter.WriteHeader(code)
 }
 
 func (l *Logger) Middleware(next http.Handler) http.Handler {

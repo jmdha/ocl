@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>open combat logs</title>
+</head>
+<body>
+
+<section>
+	<table>
+		<thead>
+			<th>method</th>
+			<th>route</th>
+			<th>calls</th>
+			<th>avg ms</th>
+		</thead>
+		<tbody id="metrics_routes"></tbody>
+	</table>
+</section>
+
+<script>
+async function retrieve_routes() {
+	const resp = await fetch('/api/metrics/routes')
+	if (!resp.ok)
+		throw new Error(`HTTP error: ${resp}`)
+	return await resp.json();
+}
+
+async function populate_routes() {
+	const data = await retrieve_routes();
+
+	const metrics_routes = document.getElementById('metrics_routes')
+	if (!metrics_routes)
+		throw new Error('failed to find element metrics_routes')
+
+	metrics_routes.innerHTML = '';
+	for (var route of data)
+		metrics_routes.innerHTML += 
+			`
+			<tr>
+				<td>${route.method||''}</td>
+				<td>${route.path||''}</td>
+				<td>${route.calls||''}</td>
+				<td>${route.avg||''}</td>
+			</tr>
+			`
+}
+
+populate_routes();
+</script>
+</body>
+</html>
