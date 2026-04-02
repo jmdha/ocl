@@ -4,13 +4,29 @@
 <body>
 <table>
 	<thead>
+		<th>calls</th>
+		<th>calls 24 h</th>
+		<th>visitors</th>
+		<th>visitors 24 h</th>
+	</thead>
+	<tbody>
+		<tr>
+			<td>{{.Aggregate.Calls}}</td>
+			<td>{{.Aggregate.Calls24}}</td>
+			<td>{{.Aggregate.Visitors}}</td>
+			<td>{{.Aggregate.Visitors24}}</td>
+		</tr>
+	</tbody>
+</table>
+<table>
+	<thead>
 		<th>method</th>
 		<th>route</th>
 		<th>calls</th>
 		<th>avg ms</th>
 	</thead>
 	<tbody>
-		{{range .}}
+		{{range .Routes}}
 			<tr>
 				<td>{{.Method}}</td>
 				<td>{{.Path}}</td>

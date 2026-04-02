@@ -24,11 +24,21 @@ func NewLogger(db *sql.DB) (Logger, error) {
 			duration  integer not null,
 			status    integer not null,
 			timestamp datetime default current_timestamp
-		)
+		);
 	`)
 	if err != nil {
 		return Logger{}, err
 	}
+
+	_, err = db.Exec(`
+		drop index if exists metrics_route;
+		create index metrics_route
+		on requests (method, path);
+	`)
+	if err != nil {
+		return Logger{}, err
+	}
+
 	return Logger{
 		db: db,
 	}, nil
