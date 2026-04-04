@@ -30,8 +30,9 @@ func main() {
 	Templates = template.Must(template.ParseFS(web.Templates, "templates/*.html"))
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", routeIndex)
-	mux.HandleFunc("GET /metrics", routeMetrics)
+	mux.HandleFunc("GET  /", routeIndex)
+	mux.HandleFunc("GET  /metrics", routeMetrics)
+	mux.HandleFunc("POST /api/upload", routeAPIUpload)
 
 	l, err := logger.NewLogger(DB)
 	if err != nil {
