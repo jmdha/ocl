@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
-	"ocl/pkg/logger"
 	"ocl/web"
+	"strings"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -34,13 +36,7 @@ func main() {
 	mux.HandleFunc("GET  /metrics", routeMetrics)
 	mux.HandleFunc("POST /api/upload", routeAPIUpload)
 
-	l, err := logger.NewLogger(DB)
-	if err != nil {
-		log.Fatalf("failed to create logger: %v", err)
-	}
-	handler := l.Middleware(mux)
-
-	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), handler)
+	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), req_log(mux))
 }
 
 func db_init(conn string) {
@@ -56,5 +52,56 @@ func db_init(conn string) {
 		log.Fatalf("setting WAL failed with error %v", err)
 	}
 
+	_, err = DB.Exec(`
+		create table if not exists requests (
+			id        integer primary key autoincrement,
+			method    text not null,
+            		path      text not null,
+			query     text not null,
+			ip        text not null,
+			agent     text not null,
+			duration  integer not null,
+			timestamp datetime not null default current_timestamp
+		);
+	`)
+	if err != nil {
+		log.Fatalf("create requests failed with error %v", err)
+	}
+
 	DB.SetMaxOpenConns(1)
+}
+
+func req_log(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t0 := time.Now()
+		next.ServeHTTP(w, r)
+		duration := time.Since(t0).Nanoseconds()
+		_, err := DB.Exec(`
+			insert into requests (method, path, query, ip, agent, duration)
+			values (?, ?, ?, ?, ?, ?)`,
+			r.Method,
+			r.URL.Path,
+			r.URL.RawQuery,
+			getIP(r),
+			r.UserAgent(),
+			duration,
+		)
+		if err == nil {
+			log.Printf("%s %s", r.Method, r.URL.Path)
+		} else {
+			log.Printf("Failed to log request: %v", err)
+		}
+	})
+}
+
+// cannot just use request.RemoteAddr as the server may be behind a proxy
+func getIP(r *http.Request) string {
+	if ip := r.Header.Get("X-Forwarded-For"); ip != "" {
+		return strings.Split(ip, ",")[0]
+	}
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return ip
 }
