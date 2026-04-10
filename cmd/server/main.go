@@ -47,7 +47,12 @@ func db_init(conn string) {
 		log.Fatalf("db creation failed with conn %s error %v", conn, err)
 	}
 
-	_, err = DB.Exec(`PRAGMA journal_mode=WAL`)
+	_, err = DB.Exec(`pragma journal_mode=WAL`)
+	if err != nil {
+		log.Fatalf("setting WAL failed with error %v", err)
+	}
+
+	_, err = DB.Exec(`pragma busy_timeout=60000`)
 	if err != nil {
 		log.Fatalf("setting WAL failed with error %v", err)
 	}
@@ -55,13 +60,13 @@ func db_init(conn string) {
 	_, err = DB.Exec(`
 		create table if not exists requests (
 			id        integer primary key autoincrement,
+			timestamp datetime not null default current_timestamp,
+			ip        text not null,
 			method    text not null,
             		path      text not null,
 			query     text not null,
-			ip        text not null,
 			agent     text not null,
-			duration  integer not null,
-			timestamp datetime not null default current_timestamp
+			duration  integer not null
 		);
 	`)
 	if err != nil {

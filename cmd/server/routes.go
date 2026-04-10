@@ -1,11 +1,8 @@
 package main
 
 import (
-	"github.com/google/uuid"
-	"io"
 	"log"
 	"net/http"
-	"os"
 )
 
 func routeIndex(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +41,7 @@ func routeAPIUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, _, err := r.FormFile("file")
+	file, handler, err := r.FormFile("file")
 	if err != nil {
 		log.Println("routeAPIUpload faield with ", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -52,14 +49,11 @@ func routeAPIUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	dst, err := os.Create("tmp/logs" + uuid.New().String())
-	if err != nil {
-		log.Println("routeAPIUpload faield with ", err)
-		w.WriteHeader(http.StatusInternalServerError)
+	if handler.Size > 1*1e9 {
+		log.Println("routeAPIUpload faield with max file size exceeded")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	defer dst.Close()
 
-	io.Copy(dst, file)
 	w.WriteHeader(http.StatusOK)
 }
