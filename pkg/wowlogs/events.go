@@ -1,24 +1,30 @@
 package wowlogs
 
+import "time"
+
 type Event any // why is there not a union type?
 
 type EventVersion struct {
-	Log      uint
-	Major    uint
-	Minor    uint
-	Patch    uint
-	Project  uint
+	Time     time.Time
+	Log      int
+	Version  string
+	Project  int
 	Advanced bool
 }
 
 type EventZoneChange struct {
-	Instance   uint
+	Time       time.Time
+	Instance   int
 	Zone       string
-	Difficulty uint
+	Difficulty int
 }
 
 type EventMapChange struct {
-	ID             uint
-	Name           string
-	X0, Y0, X1, Y1 float64
+	Time time.Time
+	ID   int
+	Name string
+	X0   float64
+	Y0   float64
+	X1   float64
+	Y1   float64
 }
