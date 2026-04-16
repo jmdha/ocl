@@ -61,7 +61,8 @@ func routeAPIUploadMultipart(w http.ResponseWriter, r *http.Request) {
 
 	var tableSize int64
 	err = DB.QueryRow(`
-		select sum(length(data)) from logs;
+		select coalesce(sum(length(data)), 0)
+		from logs;
 	`).Scan(&tableSize)
 
 	if err != nil {
