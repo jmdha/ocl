@@ -1,11 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"compress/gzip"
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/google/uuid"
 )
 
 func routeIndex(w http.ResponseWriter, r *http.Request) {
@@ -59,43 +62,27 @@ func routeAPIUploadMultipart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tableSize int64
-	err = DB.QueryRow(`
-		select coalesce(sum(length(data)), 0)
-		from logs;
-	`).Scan(&tableSize)
-
+	err = os.MkdirAll("uploads", 0755)
 	if err != nil {
-		log.Println("failed to retrieve logs size")
+		log.Println("failed to create dir", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if handler.Size+tableSize > 1e9 {
-		log.Println("max log size exceeded")
-		w.WriteHeader(http.StatusInsufficientStorage)
-		return
-	}
-
-	var buf bytes.Buffer
-	bufWriter := gzip.NewWriter(&buf)
-	defer bufWriter.Close()
-
-	_, err = io.Copy(bufWriter, file)
+	id := uuid.New().String()
+	outPath := filepath.Join("uploads", id+".gz")
+	outFile, err := os.Create(outPath)
 	if err != nil {
-		log.Println("failed to compress file")
+		log.Println("failed to create file", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	defer outFile.Close()
 
-	_, err = DB.Exec(`
-		insert into logs (ip, size, compress, data)
-		values (?, ?, ?, ?)`,
-		getIP(r),
-		handler.Size,
-		"gzip",
-		buf.Bytes(),
-	)
+	gz := gzip.NewWriter(outFile)
+	defer gz.Close()
+
+	_, err = io.Copy(gz, file)
 	if err != nil {
 		log.Println("failed to save file", err)
 		w.WriteHeader(http.StatusInternalServerError)
