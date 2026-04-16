@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/gabriel-vasile/mimetype"
+	"bytes"
+	"compress/gzip"
+	"io"
 	"log"
 	"net/http"
 )
@@ -57,17 +59,27 @@ func routeAPIUploadMultipart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mime, err := mimetype.DetectReader(file)
+	var buf bytes.Buffer
+	bufWriter := gzip.NewWriter(&buf)
+	defer bufWriter.Close()
+
+	_, err = io.Copy(bufWriter, file)
 	if err != nil {
-		log.Println("failure to detect mime type", err)
-		w.WriteHeader(http.StatusBadRequest)
+		log.Println("failed to compress file")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	allowed := []string{"text/plain"}
-	if !mimetype.EqualsAny(mime.String(), allowed...) {
-		log.Println("unsupported mime type", mime)
-		w.WriteHeader(http.StatusBadRequest)
+	_, err = DB.Exec(`
+		insert into logs (size, compress, data)
+		values (?, ?, ?)`,
+		handler.Size,
+		"gzip",
+		buf.Bytes(),
+	)
+	if err != nil {
+		log.Println("failed to save file", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
