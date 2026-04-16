@@ -53,9 +53,26 @@ func routeAPIUploadMultipart(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	if handler.Size > 1*1e9 {
+	if handler.Size > 1e9 {
 		log.Println("file too big")
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var tableSize int64
+	err = DB.QueryRow(`
+		select sum(length(data)) from logs;
+	`).Scan(&tableSize)
+
+	if err != nil {
+		log.Println("failed to retrieve logs size")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if handler.Size+tableSize > 1e9 {
+		log.Println("max log size exceeded")
+		w.WriteHeader(http.StatusInsufficientStorage)
 		return
 	}
 
@@ -71,8 +88,9 @@ func routeAPIUploadMultipart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = DB.Exec(`
-		insert into logs (size, compress, data)
-		values (?, ?, ?)`,
+		insert into logs (ip, size, compress, data)
+		values (?, ?, ?, ?)`,
+		getIP(r),
 		handler.Size,
 		"gzip",
 		buf.Bytes(),

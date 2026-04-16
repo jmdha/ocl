@@ -77,6 +77,7 @@ func db_init(conn string) {
 		create table if not exists logs (
 			id        integer primary key autoincrement,
 			timestamp datetime not null default current_timestamp,
+			ip        text not null,
 			size      integer not null,
 			compress  text not null,
 			data      blob not null
