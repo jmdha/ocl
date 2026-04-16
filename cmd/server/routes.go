@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gabriel-vasile/mimetype"
 	"log"
 	"net/http"
 )
@@ -10,7 +11,7 @@ func routeIndex(w http.ResponseWriter, r *http.Request) {
 
 	err = Templates.ExecuteTemplate(w, "index.html", nil)
 	if err != nil {
-		log.Println("routeIndex faield with ", err)
+		log.Println("failure to serve index", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -22,35 +23,50 @@ func routeMetrics(w http.ResponseWriter, r *http.Request) {
 
 	data, err = repoMetrics()
 	if err != nil {
-		log.Println("routeMetrics faield with ", err)
+		log.Println("failure to retrieve metrics", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = Templates.ExecuteTemplate(w, "metrics.html", data)
 	if err != nil {
-		log.Println("routeMetrics faield with ", err)
+		log.Println("failure to serve metrics", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
 
-func routeAPIUpload(w http.ResponseWriter, r *http.Request) {
+func routeAPIUploadMultipart(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		log.Println("non-allowed method")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		log.Println("routeAPIUpload faield with ", err)
+		log.Println("failure to retrieve file", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	if handler.Size > 1*1e9 {
-		log.Println("routeAPIUpload faield with max file size exceeded")
+		log.Println("file too big")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	mime, err := mimetype.DetectReader(file)
+	if err != nil {
+		log.Println("failure to detect mime type", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	allowed := []string{"text/plain"}
+	if !mimetype.EqualsAny(mime.String(), allowed...) {
+		log.Println("unsupported mime type", mime)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

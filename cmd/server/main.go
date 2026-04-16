@@ -34,7 +34,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET  /", routeIndex)
 	mux.HandleFunc("GET  /metrics", routeMetrics)
-	mux.HandleFunc("POST /api/upload", routeAPIUpload)
+	mux.HandleFunc("POST /api/upload/multipart", routeAPIUploadMultipart)
 
 	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), req_log(mux))
 }
@@ -71,6 +71,19 @@ func db_init(conn string) {
 	`)
 	if err != nil {
 		log.Fatalf("create requests failed with error %v", err)
+	}
+
+	_, err = DB.Exec(`
+		create table if not exists logs (
+			id        integer primary key autoincrement,
+			timestamp datetime not null default current_timestamp,
+			size      integer not null,
+			compress  text not null,
+			data      blob not null
+		);
+	`)
+	if err != nil {
+		log.Fatalf("create logs failed with error %v", err)
 	}
 
 	DB.SetMaxOpenConns(1)
