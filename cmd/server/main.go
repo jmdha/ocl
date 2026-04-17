@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -37,7 +36,7 @@ func main() {
 	mux.HandleFunc("GET  /metrics", routeMetrics)
 	mux.HandleFunc("POST /api/upload/multipart", routeAPIUploadMultipart)
 
-	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), gziphandler.GzipHandler(req_log(mux)))
+	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), req_log(mux))
 }
 
 func db_init(conn string) {
