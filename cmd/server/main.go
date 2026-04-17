@@ -74,9 +74,9 @@ func db_init(conn string) {
 	}
 
 	_, err = DB.Exec(`
-		CREATE INDEX "requests_index" ON "requests" (
-			"method",
-			"path"
+		create index if not exists requests_index on requests (
+			method,
+			path
 		);
 	`)
 	if err != nil {
