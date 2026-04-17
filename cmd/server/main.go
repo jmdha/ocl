@@ -73,6 +73,16 @@ func db_init(conn string) {
 		log.Fatalf("create requests failed with error %v", err)
 	}
 
+	_, err = DB.Exec(`
+		CREATE INDEX "requests_index" ON "requests" (
+			"method",
+			"path"
+		);
+	`)
+	if err != nil {
+		log.Fatalf("failed to create index %v\n", err)
+	}
+
 	DB.SetMaxOpenConns(1)
 }
 
