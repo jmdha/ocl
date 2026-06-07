@@ -2,14 +2,13 @@ all:
 	go mod tidy
 	go fmt ./...
 	go test ./...
-	go build ./cmd/client
-	go build ./cmd/server
+	go build .
 
 run: all
-	./server
+	./ocl
 
 watch:
-	air .air.toml
+	air .
 
 test:
 	go test ./...

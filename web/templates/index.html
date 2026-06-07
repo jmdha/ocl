@@ -1,13 +1,41 @@
 <!DOCTYPE html>
 <html>
-<head><title>{{ .Title }}</title></head>
+	<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Open Combat Logs</title>
+	<link href="static/style.css" rel="stylesheet" type="text/css">
+</head>
+<header>
+	<nav>
+		<div href="/" class="logo">OCL</div>
+		<ul>
+			<li><a href="/wow">WOW</a></li>
+			<li><a href="/ff14">FF14</a></li>
+		</ul>
+	</nav>
+</header>
 <body>
-	{{template "nav"}}
-	<h1>{{ .Message }}</h1>
-	<ul>
-		{{ range .Items }}
-			<li>{{ . }}</li>
-		{{ end }}
-	</ul>
+	<aside>
+	{{range .Groups}}
+		<section class="raid">
+			<h4 class="raid-title">{{.Name}}</h4>
+
+			<ul>
+				{{range .Items}}
+					<li>
+						<a href="/wow/{{.Slug}}">{{.Name}}</a>
+					</li>
+				{{end}}
+			</ul>
+		</section>
+	{{end}}
+	</aside>
+
+	<main>
+		<h1>Open Combat Logs</h1>
+		<p>Select an encounter.</p>
+	</main>
 </body>
 </html>
