@@ -149,7 +149,7 @@ type EventUnknown struct {
 func Parse(event *Event, line string) error {
 	sTimestamp, sFields, ok := strings.Cut(line, "  ")
 	if !ok {
-		return fmt.Errorf("\"  \" not found")
+		return fmt.Errorf("missing event seperator \"  \"")
 	}
 
 	timestamp, err := ParseTimestamp(sTimestamp)

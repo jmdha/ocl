@@ -50,7 +50,6 @@ func main() {
 	mux.Handle("GET /static/", http.FileServer(http.FS(web.Static)))
 
 	mux.HandleFunc("GET  /", GetRouteIndex)
-
 	mux.HandleFunc("POST /upload", PostUpload)
 
 	// Create server
@@ -126,13 +125,15 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := os.Rename(tmpPath, outPath); err != nil {
+	err = os.Rename(tmpPath, outPath)
+	if err != nil {
 		db.ImportMarkFailed(importID, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := db.ImportMarkPending(importID, n); err != nil {
+	err = db.ImportMarkPending(importID, n)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
