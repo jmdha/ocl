@@ -16,10 +16,9 @@ create table requests (
 create table imports (
 	id        integer primary key,
 	timestamp integer not null,
-	path      text,
 	status    text not null check (status in ('pending', 'uploading', 'processing', 'done', 'failed')),
 	error     text,
-	processed integer default 0
+	data      blob
 );
 
 create table event_encounter_start (

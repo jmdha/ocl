@@ -1,6 +1,9 @@
 package db
 
-import "time"
+import (
+	"bytes"
+	"time"
+)
 
 func ImportAdd() (int64, error) {
 	res, err := db.Exec(
@@ -32,11 +35,10 @@ func ImportMarkFailed(id int64, reason string) error {
 	return nil
 }
 
-func ImportMarkPending(id int64, processed int64, path string) error {
+func ImportMarkPending(id int64, data bytes.Buffer) error {
 	_, err := db.Exec(
-		`update imports set status = 'pending', processed = ?, path = ? where id = ?`,
-		processed,
-		path,
+		`update imports set status = 'pending', data = ? where id = ?`,
+		data.Bytes(),
 		id,
 	)
 	if err != nil {
@@ -58,7 +60,7 @@ func ImportMarkDone(id int64) error {
 	return nil
 }
 
-func ImportClaim() (int64, string, error) {
+func ImportClaim() (int64, []byte, error) {
 	res := db.QueryRow(`
 		update imports
 		set status = 'processing'
@@ -69,15 +71,15 @@ func ImportClaim() (int64, string, error) {
 			order by id
 			limit 1
 		)
-		returning id, path
+		returning id, data
 	`)
 
 	var id int64
-	var path string
-	err := res.Scan(&id, &path)
+	var data []byte
+	err := res.Scan(&id, &data)
 	if err != nil {
-		return 0, "", err
+		return 0, nil, err
 	}
 
-	return id, path, nil
+	return id, data, nil
 }

@@ -64,6 +64,24 @@ func Init(conn string) error {
 	return nil
 }
 
+func Size() (int64, error) {
+	var pageCount int64
+	var pageSize int64
+	var err error
+
+	err = db.QueryRow(`PRAGMA page_count`).Scan(&pageCount)
+	if err != nil {
+		return 0, err
+	}
+
+	err = db.QueryRow(`PRAGMA page_size`).Scan(&pageSize)
+	if err != nil {
+		return 0, err
+	}
+
+	return pageCount * pageSize, nil
+}
+
 func RequestsAdd(
 	method string,
 	path string,
@@ -87,4 +105,82 @@ func RequestsAdd(
 	)
 
 	return err
+}
+
+func Requests24H() (int, error) {
+	var out int
+	var err error
+
+	err = db.QueryRow(`
+		select count(*)
+		from requests
+		where timestamp >= (unixepoch() - 86400) * 1000
+	`).Scan(&out)
+
+	return out, err
+}
+
+func RequestsTotal() (int, error) {
+	var out int
+	var err error
+
+	err = db.QueryRow(`
+		select count(*)
+		from requests
+	`).Scan(&out)
+
+	return out, err
+}
+
+func Visitors24H() (int, error) {
+	var out int
+	var err error
+
+	cutoff := time.Now().Add(-24 * time.Hour).UnixMilli()
+
+	err = db.QueryRow(`
+		select count(distinct ip)
+		from requests
+		where timestamp >= ?
+	`, cutoff).Scan(&out)
+
+	return out, err
+}
+
+func VisitorsTotal() (int, error) {
+	var out int
+	var err error
+
+	err = db.QueryRow(`
+		select count(distinct ip)
+		from requests
+	`).Scan(&out)
+
+	return out, err
+}
+
+func QueueActive() (int, error) {
+	var out int
+	var err error
+
+	err = db.QueryRow(`
+		select count(*)
+		from imports
+		where status = 'processing'
+	`).Scan(&out)
+
+	return out, err
+}
+
+func QueueTotal() (int, error) {
+	var out int
+	var err error
+
+	err = db.QueryRow(`
+		select count(*)
+		from imports
+		where status != 'done' and status != 'failed'
+	`).Scan(&out)
+
+	return out, err
 }

@@ -2,13 +2,13 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"ocl/db"
 	"ocl/wcl"
-	"os"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -16,17 +16,17 @@ import (
 
 func worker(id int) {
 	var job int64
-	var path string
+	var data []byte
 	var err error
 	for {
-		job, path, err = db.ImportClaim()
+		job, data, err = db.ImportClaim()
 		if errors.Is(err, sql.ErrNoRows) {
 			time.Sleep(time.Second)
 			continue
 		}
 
 		log.Printf("[worker %d] processing %d", id, job)
-		err = process(job, path)
+		err = process(job, data)
 		if err != nil {
 			log.Printf("[worker %d] failed to process job %d: %v", id, job, err)
 			err = db.ImportMarkFailed(job, err.Error())
@@ -44,19 +44,13 @@ func worker(id int) {
 	}
 }
 
-func process(job int64, path string) error {
-	var file *os.File
+func process(job int64, data []byte) error {
 	var scanner *bufio.Scanner
 	var line int64
 	var event wcl.Event
 	var err error
-	file, err = os.Open(path)
-	if err != nil {
-		return fmt.Errorf("failed to open file %s: %v", path, err)
-	}
-	defer file.Close()
 
-	d, err := zstd.NewReader(file)
+	d, err := zstd.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return err
 	}

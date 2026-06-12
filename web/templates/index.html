@@ -1,22 +1,26 @@
 <!DOCTYPE html>
 <html>
-	<html lang="en">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Open Combat Logs</title>
+
 	<link href="static/style.css" rel="stylesheet" type="text/css">
+
+	<title>Open Combat Logs</title>
 </head>
-<header>
-	<nav>
-		<div href="/" class="logo">OCL</div>
-		<ul>
-			<li><a href="/wow">WOW</a></li>
-			<li><a href="/ff14">FF14</a></li>
-		</ul>
-	</nav>
-</header>
 <body>
+	<header>
+		<nav>
+			<div class="logo">OCL</div>
+			<ul>
+				<li>Queue: {{ .QueueActive }} / {{ .QueueTotal }}</li>
+				<li>Storage: {{ printf "%.1f" .StorageUsed }} / {{ .StorageTotal }} GB</li>
+				<li>Requests: {{ .Requests24H }} / {{ .RequestsTotal }}</li>
+				<li>Visitors: {{ .Visitors24H }} / {{ .VisitorsTotal }}</li>
+			</ul>
+		</nav>
+	</header>
+
 	<aside>
 		<section class="raid">
 			<h4 class="raid-title">Voidspire</h4>

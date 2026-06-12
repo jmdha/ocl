@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"ocl/db"
 	"ocl/web"
-	"os"
-	"path/filepath"
 	"text/template"
 	"time"
 
@@ -71,7 +69,37 @@ func main() {
 func GetRouteIndex(w http.ResponseWriter, r *http.Request) {
 	var err error
 
-	err = templates.ExecuteTemplate(w, "index.html", nil)
+	type Data struct {
+		QueueActive   int
+		QueueTotal    int
+		StorageUsed   float64
+		StorageTotal  float64
+		Requests24H   int
+		RequestsTotal int
+		Visitors24H   int
+		VisitorsTotal int
+	}
+
+	StorageUsed, err := db.Size()
+	QueueActive, err := db.QueueActive()
+	QueueTotal, err := db.QueueTotal()
+	Requests24H, err := db.Requests24H()
+	RequestsTotal, err := db.RequestsTotal()
+	Visitors24H, err := db.Visitors24H()
+	VisitorsTotal, err := db.VisitorsTotal()
+
+	data := Data{
+		QueueActive,
+		QueueTotal,
+		float64(StorageUsed) / 1024 / 1024 / 1024,
+		4,
+		Requests24H,
+		RequestsTotal,
+		Visitors24H,
+		VisitorsTotal,
+	}
+
+	err = templates.ExecuteTemplate(w, "index.html", data)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -80,7 +108,7 @@ func GetRouteIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostUpload(w http.ResponseWriter, r *http.Request) {
-	const MaxSize = 4 << 30 // 4 GB
+	const MaxSize = 2 << 30
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -101,43 +129,29 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpPath := filepath.Join("uploads", fmt.Sprintf("%d.txt.zst.tmp", importID))
-	outPath := filepath.Join("uploads", fmt.Sprintf("%d.txt.zst", importID))
-
-	f, err := os.Create(tmpPath)
+	var buf bytes.Buffer
+	encoder, err := zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.SpeedFastest))
 	if err != nil {
 		db.ImportMarkFailed(importID, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer f.Close()
-
-	encoder, err := zstd.NewWriter(f,
-		zstd.WithEncoderLevel(zstd.SpeedFastest),
-	)
-	if err != nil {
-		db.ImportMarkFailed(importID, err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer encoder.Close()
 
 	_, err = io.Copy(encoder, r.Body)
 	if err != nil {
-		os.Remove(tmpPath)
 		db.ImportMarkFailed(importID, err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = os.Rename(tmpPath, outPath)
+	err = encoder.Close()
 	if err != nil {
 		db.ImportMarkFailed(importID, err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = db.ImportMarkPending(importID, 0, outPath)
+	err = db.ImportMarkPending(importID, buf)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -145,10 +159,4 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"import_id": importID,
-		"status":    "pending",
-		"size":      0,
-	})
 }
