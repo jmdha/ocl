@@ -10,19 +10,23 @@ import (
 	"ocl/wcl"
 	"os"
 	"time"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 func worker(id int) {
 	var job int64
+	var path string
 	var err error
 	for {
-		job, err = db.ImportClaim()
+		job, path, err = db.ImportClaim()
 		if errors.Is(err, sql.ErrNoRows) {
 			time.Sleep(time.Second)
 			continue
 		}
 
-		err = process(job, fmt.Sprintf("uploads/%d", job))
+		log.Printf("[worker %d] processing %d", id, job)
+		err = process(job, path)
 		if err != nil {
 			log.Printf("[worker %d] failed to process job %d: %v", id, job, err)
 			err = db.ImportMarkFailed(job, err.Error())
@@ -36,6 +40,7 @@ func worker(id int) {
 		if err != nil {
 			log.Printf("[worker %d] failed to mark job done %d: %v", id, job, err)
 		}
+		log.Printf("[worker %d] finished processing %d", id, job)
 	}
 }
 
@@ -51,8 +56,14 @@ func process(job int64, path string) error {
 	}
 	defer file.Close()
 
+	d, err := zstd.NewReader(file)
+	if err != nil {
+		return err
+	}
+	defer d.Close()
+
 	line = 0
-	scanner = bufio.NewScanner(file)
+	scanner = bufio.NewScanner(d)
 	for scanner.Scan() {
 		err = wcl.Parse(&event, scanner.Text())
 		if err != nil {
@@ -60,20 +71,38 @@ func process(job int64, path string) error {
 		}
 
 		switch event.Kind {
-		case wcl.KindVersion:
-			err = db.InsertWOWEventVersion(
+		case wcl.KindEncounterStart:
+			err = db.InsertEventEncounterStart(
 				job,
 				line,
-				event.Version.Timestamp,
-				event.Version.Log,
-				event.Version.Advanced,
-				event.Version.Major,
-				event.Version.Minor,
-				event.Version.Patch,
-				event.Version.Project,
+				event.EncounterStart.Timestamp,
+				event.EncounterStart.EncounterID,
+				event.EncounterStart.DifficultyID,
+				event.EncounterStart.GroupSize,
+			)
+		case wcl.KindEncounterEnd:
+			err = db.InsertEventEncounterEnd(
+				job,
+				line,
+				event.EncounterEnd.Timestamp,
+				event.EncounterEnd.EncounterID,
+				event.EncounterEnd.DifficultyID,
+				event.EncounterEnd.GroupSize,
+				event.EncounterEnd.Success,
+				event.EncounterEnd.Duration,
+			)
+		case wcl.KindSpellDamage:
+			err = db.InsertEventDamage(
+				job,
+				line,
+				event.SpellDamage.Timestamp,
+				0,
+				0,
+				0,
+				event.SpellDamage.Damage,
 			)
 		case wcl.KindUnknown:
-			err = fmt.Errorf("line %d unknown event %s", line, scanner.Text())
+			err = nil
 		}
 		if err != nil {
 			return err

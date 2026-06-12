@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/klauspost/compress v1.15.11
 	modernc.org/sqlite v1.51.0
 )
 

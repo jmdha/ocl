@@ -37,7 +37,7 @@ func Init(conn string) error {
 	if err != nil {
 		return err
 	}
-	m.Up()
+	err = m.Up()
 
 	db, err = sql.Open("sqlite", conn)
 	if err != nil {
@@ -51,22 +51,39 @@ func Init(conn string) error {
 		return err
 	}
 
+	_, err = db.Exec(`PRAGMA journal_mode = WAL;`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`PRAGMA synchronous = normal;`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func RequestsAdd(method string, path string, query string, ip string, agent string, duration int64) error {
+func RequestsAdd(
+	method string,
+	path string,
+	query string,
+	ip string,
+	agent string,
+	duration time.Duration,
+) error {
 	var err error
 
 	_, err = db.Exec(`
 		insert into requests (timestamp, method, path, query, ip, agent, duration)
 		values (?, ?, ?, ?, ?, ?, ?)`,
-		time.Now().Unix(),
+		time.Now().UTC().UnixMilli(),
 		method,
 		path,
 		query,
 		ip,
 		agent,
-		duration,
+		duration.Nanoseconds(),
 	)
 
 	return err

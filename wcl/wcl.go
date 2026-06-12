@@ -76,7 +76,7 @@ type EventEncounterEnd struct {
 	DifficultyID  int64
 	GroupSize     int64
 	Success       bool
-	Duration      int64
+	Duration      time.Duration
 }
 
 type EventMapChange struct {
@@ -116,8 +116,8 @@ type EventSpellDamage struct {
 	TargetName string
 	SpellID    int64
 	SpellName  string
-	Damage     int64
-	DamageRaw  int64
+	Damage     float64
+	DamageRaw  float64
 }
 
 type EventSpellHeal struct {
@@ -263,6 +263,10 @@ func parseInt(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
 
+func parseFloat(s string) (float64, error) {
+	return strconv.ParseFloat(s, 64)
+}
+
 func parseBool(s string) (bool, error) {
 	n, err := parseInt(s)
 	return n != 0, err
@@ -382,7 +386,7 @@ func parseEncounterEnd(event *Event, ts time.Time, fields []string) error {
 		DifficultyID:  difficultyID,
 		GroupSize:     groupSize,
 		Success:       success,
-		Duration:      duration,
+		Duration:      time.Duration(duration) * time.Millisecond,
 	}
 	return nil
 }
@@ -471,11 +475,11 @@ func parseSpellDamage(event *Event, ts time.Time, fields []string) error {
 	if err != nil {
 		return err
 	}
-	damage, err := parseInt(fields[30])
+	damage, err := parseFloat(fields[30])
 	if err != nil {
 		return err
 	}
-	damageRaw, err := parseInt(fields[31])
+	damageRaw, err := parseFloat(fields[31])
 	if err != nil {
 		return err
 	}

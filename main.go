@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"text/template"
 	"time"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 var templates *template.Template
@@ -56,9 +58,10 @@ func main() {
 	srv := &http.Server{
 		Addr:           fmt.Sprintf("%s:%d", addr, port),
 		Handler:        MiddlewareLogging(mux),
-		ReadTimeout:    8 * time.Second,
-		WriteTimeout:   8 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+		ReadTimeout:    0 * time.Second,
+		WriteTimeout:   0 * time.Second,
+		IdleTimeout:    0 * time.Second,
+		MaxHeaderBytes: 64 << 10, // 64 kb
 	}
 
 	// Start server
@@ -98,8 +101,8 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpPath := filepath.Join("uploads", fmt.Sprintf("%d.tmp", importID))
-	outPath := filepath.Join("uploads", fmt.Sprintf("%d", importID))
+	tmpPath := filepath.Join("uploads", fmt.Sprintf("%d.txt.zst.tmp", importID))
+	outPath := filepath.Join("uploads", fmt.Sprintf("%d.txt.zst", importID))
 
 	f, err := os.Create(tmpPath)
 	if err != nil {
@@ -107,21 +110,23 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer f.Close()
 
-	n, copyErr := io.Copy(f, r.Body)
-	closeErr := f.Close()
-
-	if copyErr != nil {
-		os.Remove(tmpPath)
-		db.ImportMarkFailed(importID, copyErr.Error())
-		http.Error(w, copyErr.Error(), http.StatusBadRequest)
+	encoder, err := zstd.NewWriter(f,
+		zstd.WithEncoderLevel(zstd.SpeedFastest),
+	)
+	if err != nil {
+		db.ImportMarkFailed(importID, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer encoder.Close()
 
-	if closeErr != nil {
+	_, err = io.Copy(encoder, r.Body)
+	if err != nil {
 		os.Remove(tmpPath)
-		db.ImportMarkFailed(importID, closeErr.Error())
-		http.Error(w, closeErr.Error(), http.StatusInternalServerError)
+		db.ImportMarkFailed(importID, err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -132,7 +137,7 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.ImportMarkPending(importID, n)
+	err = db.ImportMarkPending(importID, 0, outPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -144,6 +149,6 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"import_id": importID,
 		"status":    "pending",
-		"size":      n,
+		"size":      0,
 	})
 }
