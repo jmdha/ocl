@@ -41,6 +41,10 @@ func main() {
 	templates = template.Must(template.ParseFS(web.Templates, "templates/*.html"))
 
 	// Start processing worker(s)
+	err = db.ImportResetProcessing()
+	if err != nil {
+		log.Fatalf("failed to reset processing %v", err)
+	}
 	for i := 0; i < workers; i++ {
 		go worker(i)
 	}

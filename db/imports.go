@@ -22,6 +22,12 @@ func ImportAdd() (int64, error) {
 	return id, err
 }
 
+func ImportResetProcessing() error {
+	var err error
+	_, err = db.Exec(`update imports set status = 'pending' where status = 'processing'`)
+	return err
+}
+
 func ImportMarkFailed(id int64, reason string) error {
 	_, err := db.Exec(
 		`update imports set status = 'failed', error = ? where id = ?`,
