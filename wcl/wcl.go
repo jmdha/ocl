@@ -116,8 +116,8 @@ type EventSpellDamage struct {
 	TargetName string
 	SpellID    int64
 	SpellName  string
-	Damage     float64
-	DamageRaw  float64
+	Damage     int64
+	DamageRaw  int64
 }
 
 type EventSpellHeal struct {
@@ -475,11 +475,11 @@ func parseSpellDamage(event *Event, ts time.Time, fields []string) error {
 	if err != nil {
 		return err
 	}
-	damage, err := parseFloat(fields[30])
+	damage, err := parseInt(fields[31])
 	if err != nil {
 		return err
 	}
-	damageRaw, err := parseFloat(fields[31])
+	damageRaw, err := parseInt(fields[32])
 	if err != nil {
 		return err
 	}

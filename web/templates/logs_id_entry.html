@@ -6,13 +6,12 @@
 
 	<link href="/static/style.css" rel="stylesheet" type="text/css">
 
-	<title>Open Combat Logs</title>
+	<title>{{ .Name }}</title>
 </head>
 <body>
 	{{ template "header" .Header }}
 	{{ template "sidebar" . }}
 	<main>
-		<h1>Count: {{ .Count }} </h1>
 	</main>
 </body>
 </html>

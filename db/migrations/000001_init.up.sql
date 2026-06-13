@@ -1,61 +1,63 @@
--- Denotes a http request
--- Used for auditing, metrics, etc
-create table requests (
+create table request (
 	id        integer primary key,
 	timestamp integer not null,
-	ip        text not null,
-	method    text not null,
-        path      text not null,
-	query     text not null,
-	agent     text not null,
+	ip        text    not null,
+	method    text    not null,
+        path      text    not null,
+	query     text    not null,
+	agent     text    not null,
 	duration  integer not null
 );
 
--- Denotes an upload
--- Used for tracking who uploaded what, processing queue
-create table imports (
+create table import (
 	id        integer primary key,
 	timestamp integer not null,
-	status    text not null check (status in ('pending', 'uploading', 'processing', 'done', 'failed')),
+	status    text    not null,
 	error     text,
-	data      blob
+	data      blob,
+
+	check (status in ('pending', 'uploading', 'processing', 'done', 'failed'))
 );
 
-create table event_encounter_start (
-	id            integer primary key,
-	import_id     integer not null,
-	line          integer not null,
-	timestamp     integer not null,
-	encounter_id  integer not null,
-	difficulty_id integer not null,
-	group_size    integer not null,
+create table encounter (
+	id              integer primary key,
+	import_id       integer not null,
 
-	foreign key(import_id) references imports(id)
+	timestamp_start integer not null,
+	timestamp_end   integer,
+	encounter_id    integer not null,
+	encounter_name  integer not null,
+	group_size      integer not null,
+	difficulty      integer not null,
+	success         integer,
+
+	check (success in (null, 0, 1))
 );
 
-create table event_encounter_end (
-	id            integer primary key,
-	import_id     integer not null,
-	line          integer not null,
-	timestamp     integer not null,
-	encounter_id  integer not null,
-	difficulty_id integer not null,
-	group_size    integer not null,
-	success       integer not null,
-	duration      integer not null,
-
-	foreign key(import_id) references imports(id)
+create table character (
+	id   integer primary key,
+	guid text not null unique,
+	name text not null
 );
 
 create table event_damage (
 	id        integer primary key,
 	import_id integer not null,
-	line      integer not null,
+
 	timestamp integer not null,
-	spell_id  integer not null,
 	source_id integer not null,
 	target_id integer not null,
-	amount    float not null,
+	spell_id  integer not null,
+	amount    integer not null
+);
 
-	foreign key(import_id) references imports(id)
+create table event_heal (
+	id        integer primary key,
+	import_id integer not null,
+
+	timestamp integer not null,
+	source_id integer not null,
+	target_id integer not null,
+	spell_id  integer not null,
+	amount    integer not null
 );

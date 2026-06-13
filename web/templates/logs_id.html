@@ -12,7 +12,16 @@
 	{{ template "header" .Header }}
 	{{ template "sidebar" . }}
 	<main>
-		<h1>Count: {{ .Count }} </h1>
+		<table>
+		{{ $logID := .ID }}
+		{{ range .Entries }}
+			<tr >
+				<td><a href="/logs/{{ $logID }}/{{ .ID }}">{{ .Name }}</a></td>
+				<td><a href="/logs/{{ $logID }}/{{ .ID }}">{{ .Duration }}</a></td>
+				<td><a href="/logs/{{ $logID }}/{{ .ID }}">{{ .Success }}</a></td>
+			</tr>
+		{{ end }}
+		</table>
 	</main>
 </body>
 </html>

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/sqlite"
@@ -80,107 +79,4 @@ func Size() (int64, error) {
 	}
 
 	return pageCount * pageSize, nil
-}
-
-func RequestsAdd(
-	method string,
-	path string,
-	query string,
-	ip string,
-	agent string,
-	duration time.Duration,
-) error {
-	var err error
-
-	_, err = db.Exec(`
-		insert into requests (timestamp, method, path, query, ip, agent, duration)
-		values (?, ?, ?, ?, ?, ?, ?)`,
-		time.Now().UTC().UnixMilli(),
-		method,
-		path,
-		query,
-		ip,
-		agent,
-		duration.Nanoseconds(),
-	)
-
-	return err
-}
-
-func Requests24H() (int, error) {
-	var out int
-	var err error
-
-	err = db.QueryRow(`
-		select count(*)
-		from requests
-		where timestamp >= (unixepoch() - 86400) * 1000
-	`).Scan(&out)
-
-	return out, err
-}
-
-func RequestsTotal() (int, error) {
-	var out int
-	var err error
-
-	err = db.QueryRow(`
-		select count(*)
-		from requests
-	`).Scan(&out)
-
-	return out, err
-}
-
-func Visitors24H() (int, error) {
-	var out int
-	var err error
-
-	cutoff := time.Now().Add(-24 * time.Hour).UnixMilli()
-
-	err = db.QueryRow(`
-		select count(distinct ip)
-		from requests
-		where timestamp >= ?
-	`, cutoff).Scan(&out)
-
-	return out, err
-}
-
-func VisitorsTotal() (int, error) {
-	var out int
-	var err error
-
-	err = db.QueryRow(`
-		select count(distinct ip)
-		from requests
-	`).Scan(&out)
-
-	return out, err
-}
-
-func QueueActive() (int, error) {
-	var out int
-	var err error
-
-	err = db.QueryRow(`
-		select count(*)
-		from imports
-		where status = 'processing'
-	`).Scan(&out)
-
-	return out, err
-}
-
-func QueueTotal() (int, error) {
-	var out int
-	var err error
-
-	err = db.QueryRow(`
-		select count(*)
-		from imports
-		where status != 'done' and status != 'failed'
-	`).Scan(&out)
-
-	return out, err
 }

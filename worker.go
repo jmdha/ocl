@@ -29,14 +29,14 @@ func worker(id int) {
 		err = process(job, data)
 		if err != nil {
 			log.Printf("[worker %d] failed to process job %d: %v", id, job, err)
-			err = db.ImportMarkFailed(job, err.Error())
+			err = db.ImportSetFailed(job, err.Error())
 			if err != nil {
 				log.Printf("[worker %d] failed to error %d: %v", id, job, err)
 			}
 			continue
 		}
 
-		err = db.ImportMarkDone(job)
+		err = db.ImportSetDone(job)
 		if err != nil {
 			log.Printf("[worker %d] failed to mark job done %d: %v", id, job, err)
 		}
@@ -45,68 +45,71 @@ func worker(id int) {
 }
 
 func process(job int64, data []byte) error {
-	var scanner *bufio.Scanner
-	var line int64
-	var event wcl.Event
-	var err error
-
-	d, err := zstd.NewReader(bytes.NewReader(data))
+	byteReader := bytes.NewReader(data)
+	zstdReader, err := zstd.NewReader(byteReader)
 	if err != nil {
 		return err
 	}
-	defer d.Close()
+	defer zstdReader.Close()
 
-	line = 0
-	scanner = bufio.NewScanner(d)
+	var event wcl.Event
+	scanner := bufio.NewScanner(zstdReader)
 	for scanner.Scan() {
 		err = wcl.Parse(&event, scanner.Text())
 		if err != nil {
-			return fmt.Errorf("failed to parse file %v line %d", err, line)
+			return fmt.Errorf("parse error: %v", err)
 		}
 
-		switch event.Kind {
-		case wcl.KindEncounterStart:
-			err = db.InsertEventEncounterStart(
-				job,
-				line,
-				event.EncounterStart.Timestamp,
-				event.EncounterStart.EncounterID,
-				event.EncounterStart.DifficultyID,
-				event.EncounterStart.GroupSize,
-			)
-		case wcl.KindEncounterEnd:
-			err = db.InsertEventEncounterEnd(
-				job,
-				line,
-				event.EncounterEnd.Timestamp,
-				event.EncounterEnd.EncounterID,
-				event.EncounterEnd.DifficultyID,
-				event.EncounterEnd.GroupSize,
-				event.EncounterEnd.Success,
-				event.EncounterEnd.Duration,
-			)
-		case wcl.KindSpellDamage:
-			err = db.InsertEventDamage(
-				job,
-				line,
-				event.SpellDamage.Timestamp,
-				0,
-				0,
-				0,
-				event.SpellDamage.Damage,
-			)
-		case wcl.KindUnknown:
-			err = nil
-		}
+		err = process_event(job, event)
 		if err != nil {
-			return err
+			return fmt.Errorf("event process error: %v", err)
 		}
-		line++
 	}
 
 	if scanner.Err() != nil {
-		return fmt.Errorf("process scanner error: %v", scanner.Err())
+		return fmt.Errorf("scanner error: %v", scanner.Err())
 	}
 
+	return nil
+}
+
+func process_event(job int64, event wcl.Event) error {
+	switch event.Kind {
+	case wcl.KindSpellDamage:
+		sourceID, err := db.CharacterID(event.SpellDamage.SourceGUID, event.SpellDamage.SourceName)
+		if err != nil {
+			return err
+		}
+
+		targetID, err := db.CharacterID(event.SpellDamage.TargetGUID, event.SpellDamage.TargetName)
+		if err != nil {
+			return err
+		}
+
+		return db.InsertEventDamage(
+			job,
+			event.SpellDamage.Timestamp,
+			sourceID,
+			targetID,
+			0,
+			event.SpellDamage.Damage,
+		)
+	case wcl.KindEncounterStart:
+		return db.EncounterAdd(
+			job,
+			event.EncounterStart.Timestamp,
+			event.EncounterStart.EncounterID,
+			event.EncounterStart.EncounterName,
+			event.EncounterStart.GroupSize,
+			event.EncounterStart.DifficultyID,
+		)
+	case wcl.KindEncounterEnd:
+		return db.EncounterEnd(
+			job,
+			event.EncounterEnd.Timestamp,
+			event.EncounterEnd.EncounterID,
+			event.EncounterEnd.Success,
+		)
+	}
 	return nil
 }

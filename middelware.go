@@ -10,10 +10,10 @@ import (
 
 func MiddlewareLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t0 := time.Now()
-
 		log.Printf("%s %s", r.Method, r.URL.Path)
+		t0 := time.Now()
 		next.ServeHTTP(w, r)
+		t1 := time.Now()
 
 		ip := r.Header.Get("X-Forwarded-For")
 
@@ -30,13 +30,13 @@ func MiddlewareLogging(next http.Handler) http.Handler {
 			}
 		}
 
-		err := db.RequestsAdd(
+		err := db.RequestAdd(
+			ip,
 			r.Method,
 			r.URL.Path,
 			r.URL.RawQuery,
-			ip,
 			r.UserAgent(),
-			time.Since(t0),
+			t1.Sub(t0),
 		)
 		if err != nil {
 			log.Printf("request logging failed: %v", err)
