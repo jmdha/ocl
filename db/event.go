@@ -8,6 +8,7 @@ func InsertEventDamage(
 	source_id int64,
 	target_id int64,
 	spell_id int64,
+	raw int64,
 	amount int64,
 ) error {
 	var err error
@@ -19,13 +20,15 @@ func InsertEventDamage(
 			source_id,
 			target_id,
 			spell_id,
+			raw,
 			amount
-		) values (?, ?, ?, ?, ?, ?)`,
+		) values (?, ?, ?, ?, ?, ?, ?)`,
 		import_id,
 		timestamp.UnixNano(),
 		source_id,
 		target_id,
 		spell_id,
+		raw,
 		amount,
 	)
 

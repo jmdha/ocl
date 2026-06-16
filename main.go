@@ -20,6 +20,9 @@ func main() {
 	var workers int
 	var err error
 
+	// Init logging
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	// Parse program args
 	flag.StringVar(&addr, "a", "localhost", "address to operate on")
 	flag.IntVar(&port, "p", 8080, "port to operate on")
@@ -34,7 +37,7 @@ func main() {
 	}
 
 	// Init templates
-	templates = template.Must(template.ParseFS(web.Templates, "templates/*.html"))
+	templates = template.Must(template.ParseFS(web.Public, "public/*"))
 
 	// Start processing worker(s)
 	for i := 0; i < workers; i++ {
@@ -43,9 +46,9 @@ func main() {
 
 	// Register routes
 	mux := http.NewServeMux()
-	mux.Handle("/static/", http.FileServer(http.FS(web.Static)))
-
 	mux.HandleFunc("/", RouteIndex)
+	mux.HandleFunc("/characters", RouteCharacters)
+	mux.HandleFunc("/characters/{id}", RouteCharactersID)
 	mux.HandleFunc("/encounters", RouteEncounters)
 	mux.HandleFunc("/encounters/{id}", RouteEncountersID)
 	mux.HandleFunc("/logs", RouteLogs)

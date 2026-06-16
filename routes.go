@@ -18,11 +18,49 @@ func RouteIndex(w http.ResponseWriter, r *http.Request) {
 
 	data, err = db.WebDataIndex()
 	if err != nil {
+		log.Printf("%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	_ = templates.ExecuteTemplate(w, "index.html", data)
+	err = templates.ExecuteTemplate(w, "index.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
+}
+
+func RouteCharacters(w http.ResponseWriter, r *http.Request) {
+	var data web.DataCharacters
+	var err error
+
+	data, err = db.WebDataCharacters()
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = templates.ExecuteTemplate(w, "characters.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
+}
+
+func RouteCharactersID(w http.ResponseWriter, r *http.Request) {
+	var data web.DataCharactersID
+	var err error
+
+	data, err = db.WebDataCharactersID()
+	if err != nil {
+		log.Printf("%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = templates.ExecuteTemplate(w, "characters_id.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
 }
 
 func RouteEncounters(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +73,10 @@ func RouteEncounters(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = templates.ExecuteTemplate(w, "encounters.html", data)
+	err = templates.ExecuteTemplate(w, "encounters.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
 }
 
 func RouteEncountersID(w http.ResponseWriter, r *http.Request) {
@@ -55,20 +96,27 @@ func RouteEncountersID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = templates.ExecuteTemplate(w, "encounters_id.html", data)
+	err = templates.ExecuteTemplate(w, "encounters_id.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
 }
 
 func RouteLogs(w http.ResponseWriter, r *http.Request) {
 	var data web.DataLogs
 	var err error
 
-	data, err = db.WebDataLogs()
+	data, err = db.WebDataLogs(500, 0)
 	if err != nil {
+		log.Printf("%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	_ = templates.ExecuteTemplate(w, "logs.html", data)
+	err = templates.ExecuteTemplate(w, "logs.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
 }
 
 func RouteLogsID(w http.ResponseWriter, r *http.Request) {
@@ -78,19 +126,22 @@ func RouteLogsID(w http.ResponseWriter, r *http.Request) {
 	sid := r.PathValue("id")
 	id, err := strconv.ParseInt(sid, 10, 64)
 	if err != nil || id < 0 {
+		log.Printf("invalid id %s: %v", sid, err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	data, err = db.WebDataLogsID(id)
 	if err != nil {
+		log.Printf("%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("%v", data)
-
-	_ = templates.ExecuteTemplate(w, "logs_id.html", data)
+	err = templates.ExecuteTemplate(w, "logs_id.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
 }
 
 func RouteLogsIDEntry(w http.ResponseWriter, r *http.Request) {
@@ -99,11 +150,15 @@ func RouteLogsIDEntry(w http.ResponseWriter, r *http.Request) {
 
 	data, err = db.WebDataLogsIDEntry()
 	if err != nil {
+		log.Printf("%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	_ = templates.ExecuteTemplate(w, "logs_id_entry.html", data)
+	err = templates.ExecuteTemplate(w, "logs_id_entry.html", data)
+	if err != nil {
+		log.Printf("%v", err)
+	}
 }
 
 func RouteUpload(w http.ResponseWriter, r *http.Request) {

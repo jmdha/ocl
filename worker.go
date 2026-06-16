@@ -91,7 +91,8 @@ func process_event(job int64, event wcl.Event) error {
 			event.SpellDamage.Timestamp,
 			sourceID,
 			targetID,
-			0,
+			event.SpellDamage.SpellID,
+			event.SpellDamage.DamageRaw,
 			event.SpellDamage.Damage,
 		)
 	case wcl.KindEncounterStart:

@@ -31,7 +31,7 @@ create table encounter (
 	difficulty      integer not null,
 	success         integer,
 
-	check (success in (null, 0, 1))
+	check (success is null or success in (0, 1))
 );
 
 create table character (
@@ -48,6 +48,7 @@ create table event_damage (
 	source_id integer not null,
 	target_id integer not null,
 	spell_id  integer not null,
+	raw       integer not null,
 	amount    integer not null
 );
 
@@ -61,3 +62,5 @@ create table event_heal (
 	spell_id  integer not null,
 	amount    integer not null
 );
+
+create index import_timestamp on import(timestamp);

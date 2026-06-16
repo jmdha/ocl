@@ -3,15 +3,23 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-	<link href="/static/style.css" rel="stylesheet" type="text/css">
-
 	<title>Open Combat Logs</title>
+
+<style>
+{{ template "style" }}
+</style>
 </head>
 <body>
 	{{ template "header" .Header }}
-	{{ template "sidebar" . }}
 	<main>
+		<table>
+			{{ range .Entries }}
+			<tr>
+				<td><a href="/logs/{{ .ID }}">{{ .Date.Format "2006-01-02 15:04:05" }}</a></td>
+			</tr>
+			{{ end }}
+		</table>
 	</main>
+	{{ template "footer" .Footer }}
 </body>
 </html>
