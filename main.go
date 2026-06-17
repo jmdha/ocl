@@ -18,7 +18,6 @@ func main() {
 	var port int
 	var conn string
 	var workers int
-	var err error
 
 	// Init logging
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -31,10 +30,7 @@ func main() {
 	flag.Parse()
 
 	// Init db
-	err = db.Init(conn)
-	if err != nil {
-		log.Fatalf("db init failed with %v", err)
-	}
+	log.Fatal(db.Init(conn))
 
 	// Init templates
 	templates = template.Must(template.ParseFS(web.Public, "public/*"))
@@ -59,7 +55,7 @@ func main() {
 	// Create server
 	srv := &http.Server{
 		Addr:           fmt.Sprintf("%s:%d", addr, port),
-		Handler:        MiddlewareLogging(mux),
+		Handler:        mux,
 		ReadTimeout:    30 * time.Second,
 		WriteTimeout:   30 * time.Second,
 		IdleTimeout:    60 * time.Second,

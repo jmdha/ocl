@@ -1,14 +1,3 @@
-create table request (
-	id        integer primary key,
-	timestamp integer not null,
-	ip        text    not null,
-	method    text    not null,
-        path      text    not null,
-	query     text    not null,
-	agent     text    not null,
-	duration  integer not null
-);
-
 create table import (
 	id        integer primary key,
 	timestamp integer not null,
