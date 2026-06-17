@@ -5,76 +5,8 @@ import (
 	"time"
 )
 
-func WebDataHeader() (web.DataHeader, error) {
-	return web.DataHeader{}, nil
-}
-
-func WebDataFooter() (web.DataFooter, error) {
-	QueueActive, err := ImportStatusCount("processing")
-	if err != nil {
-		return web.DataFooter{}, err
-	}
-
-	QueueTotal, err := ImportStatusCount("pending")
-	if err != nil {
-		return web.DataFooter{}, err
-	}
-
-	storage, err := Size()
-	if err != nil {
-		return web.DataFooter{}, err
-	}
-
-	StorageGB := float64(storage) / 1024 / 1024 / 1024
-
-	Requests24H, err := RequestCount24H()
-	if err != nil {
-		return web.DataFooter{}, err
-	}
-
-	RequestsTotal, err := RequestCount()
-	if err != nil {
-		return web.DataFooter{}, err
-	}
-
-	Visitors24H, err := RequestIPCount24H()
-	if err != nil {
-		return web.DataFooter{}, err
-	}
-
-	VisitorsTotal, err := RequestIPCount()
-	if err != nil {
-		return web.DataFooter{}, err
-	}
-
-	data := web.DataFooter{
-		QueueActive: QueueActive,
-		QueueTotal:  QueueTotal,
-		StorageGB:   StorageGB,
-		Requests24H: Requests24H,
-		Requests:    RequestsTotal,
-		Visitors24H: Visitors24H,
-		Visitors:    VisitorsTotal,
-	}
-
-	return data, nil
-}
-
 func WebDataIndex() (web.DataIndex, error) {
-	header, err := WebDataHeader()
-	if err != nil {
-		return web.DataIndex{}, err
-	}
-
-	footer, err := WebDataFooter()
-	if err != nil {
-		return web.DataIndex{}, err
-	}
-
-	return web.DataIndex{
-		Header: header,
-		Footer: footer,
-	}, nil
+	return web.DataIndex{}, nil
 }
 
 func WebDataCharacters_Entries() ([]web.DataCharacters_Entry, error) {
@@ -132,14 +64,7 @@ func WebDataEncounters() (web.DataEncounters, error) {
 }
 
 func WebDataEncountersID(id int64) (web.DataEncountersID, error) {
-	header, err := WebDataHeader()
-	if err != nil {
-		return web.DataEncountersID{}, err
-	}
-
-	return web.DataEncountersID{
-		Header: header,
-	}, nil
+	return web.DataEncountersID{}, nil
 }
 
 func WebDataLogs_Entries(limit int64, offset int64) ([]web.DataLogs_Entry, error) {
@@ -183,24 +108,12 @@ func WebDataLogs_Entries(limit int64, offset int64) ([]web.DataLogs_Entry, error
 }
 
 func WebDataLogs(limit int64, offset int64) (web.DataLogs, error) {
-	header, err := WebDataHeader()
-	if err != nil {
-		return web.DataLogs{}, err
-	}
-
-	footer, err := WebDataFooter()
-	if err != nil {
-		return web.DataLogs{}, err
-	}
-
 	entries, err := WebDataLogs_Entries(limit, offset)
 	if err != nil {
 		return web.DataLogs{}, err
 	}
 
 	return web.DataLogs{
-		Header:  header,
-		Footer:  footer,
 		Entries: entries,
 	}, nil
 }
@@ -248,18 +161,12 @@ func WebDataLogsID_Entries(id int64) ([]web.DataLogsID_Entry, error) {
 }
 
 func WebDataLogsID(id int64) (web.DataLogsID, error) {
-	header, err := WebDataHeader()
-	if err != nil {
-		return web.DataLogsID{}, err
-	}
-
 	entries, err := WebDataLogsID_Entries(id)
 	if err != nil {
 		return web.DataLogsID{}, err
 	}
 
 	return web.DataLogsID{
-		Header:  header,
 		ID:      id,
 		Entries: entries,
 	}, nil

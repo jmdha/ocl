@@ -10,7 +10,7 @@
 </style>
 </head>
 <body>
-	{{ template "header" .Header }}
+	{{ template "header" }}
 	<main>
 		<table>
 			{{ range .Entries }}
@@ -20,6 +20,5 @@
 			{{ end }}
 		</table>
 	</main>
-	{{ template "footer" .Footer }}
 </body>
 </html>

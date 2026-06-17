@@ -25,7 +25,7 @@ func Init(conn string) error {
 
 	d, err = iofs.New(migrations, "migrations")
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: iofs new", err)
 	}
 
 	m, err = migrate.NewWithSourceInstance(
@@ -34,31 +34,19 @@ func Init(conn string) error {
 		fmt.Sprintf("sqlite://%s", conn),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: migrate new source", err)
 	}
 	err = m.Up()
 
-	db, err = sql.Open("sqlite", conn)
+	db, err = sql.Open("sqlite", fmt.Sprintf(
+		"%s?_pragma=busy_timeout(10000)&_pragma=journal_mode(wal)&_pragma=synchronous(normal)",
+		conn,
+	))
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: sql open", err)
 	}
 
 	db.SetMaxOpenConns(1)
-
-	_, err = db.Exec(`pragma busy_timeout = 10000;`)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(`PRAGMA journal_mode = WAL;`)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(`PRAGMA synchronous = normal;`)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

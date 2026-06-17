@@ -41,15 +41,4 @@ create table event_damage (
 	amount    integer not null
 );
 
-create table event_heal (
-	id        integer primary key,
-	import_id integer not null,
-
-	timestamp integer not null,
-	source_id integer not null,
-	target_id integer not null,
-	spell_id  integer not null,
-	amount    integer not null
-);
-
 create index import_timestamp on import(timestamp);

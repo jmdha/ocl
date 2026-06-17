@@ -30,7 +30,9 @@ func main() {
 	flag.Parse()
 
 	// Init db
-	log.Fatal(db.Init(conn))
+	if err := db.Init(conn); err != nil {
+		log.Fatal(err)
+	}
 
 	// Init templates
 	templates = template.Must(template.ParseFS(web.Public, "public/*"))
