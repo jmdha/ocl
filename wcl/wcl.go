@@ -12,8 +12,8 @@ type Kind int
 
 const (
 	KindVersion Kind = iota
-	KindChallengeModeStart
-	KindChallengeModeEnd
+	KindChallengeStart
+	KindChallengeEnd
 	KindEncounterStart
 	KindEncounterEnd
 	KindCombatantInfo
@@ -40,6 +40,8 @@ type Event struct {
 	Version          EventVersion
 	EncounterStart   EventEncounterStart
 	EncounterEnd     EventEncounterEnd
+	ChallengeStart   EventChallengeStart
+	ChallengeEnd     EventChallengeEnd
 	MapChange        EventMapChange
 	ZoneChange       EventZoneChange
 	UnitDied         EventUnitDied
@@ -77,6 +79,21 @@ type EventEncounterEnd struct {
 	GroupSize     int64
 	Success       bool
 	Duration      time.Duration
+}
+
+type EventChallengeStart struct {
+	Timestamp   time.Time
+	ZoneName    string
+	InstanceID  int64
+	ChallengeID int64
+	Level       int64
+}
+
+type EventChallengeEnd struct {
+	Timestamp  time.Time
+	InstanceID int64
+	Success    bool
+	Level      int64
 }
 
 type EventMapChange struct {
@@ -174,6 +191,10 @@ func Parse(event *Event, line string) error {
 		return parseEncounterStart(event, timestamp, fields)
 	case KindEncounterEnd:
 		return parseEncounterEnd(event, timestamp, fields)
+	case KindChallengeStart:
+		return parseChallengeStart(event, timestamp, fields)
+	case KindChallengeEnd:
+		return parseChallengeEnd(event, timestamp, fields)
 	case KindMapChange:
 		return parseMapChange(event, timestamp, fields)
 	case KindZoneChange:
@@ -209,9 +230,9 @@ func MatchKind(text string) Kind {
 	case "COMBAT_LOG_VERSION":
 		return KindVersion
 	case "CHALLENGE_MODE_START":
-		return KindChallengeModeStart
+		return KindChallengeStart
 	case "CHALLENGE_MODE_END":
-		return KindChallengeModeEnd
+		return KindChallengeEnd
 	case "ENCOUNTER_START":
 		return KindEncounterStart
 	case "ENCOUNTER_END":
@@ -387,6 +408,57 @@ func parseEncounterEnd(event *Event, ts time.Time, fields []string) error {
 		GroupSize:     groupSize,
 		Success:       success,
 		Duration:      time.Duration(duration) * time.Millisecond,
+	}
+	return nil
+}
+
+func parseChallengeStart(event *Event, ts time.Time, fields []string) error {
+	if err := need(fields, 5, "CHALLENGE_MODE_START"); err != nil {
+		return err
+	}
+	instanceID, err := parseInt(fields[2])
+	if err != nil {
+		return err
+	}
+	challengeID, err := parseInt(fields[3])
+	if err != nil {
+		return err
+	}
+	level, err := parseInt(fields[4])
+	if err != nil {
+		return err
+	}
+	event.ChallengeStart = EventChallengeStart{
+		Timestamp:   ts,
+		ZoneName:    fields[1],
+		InstanceID:  instanceID,
+		ChallengeID: challengeID,
+		Level:       level,
+	}
+	return nil
+}
+
+func parseChallengeEnd(event *Event, ts time.Time, fields []string) error {
+	if err := need(fields, 5, "CHALLENGE_MODE_END"); err != nil {
+		return err
+	}
+	instanceID, err := parseInt(fields[1])
+	if err != nil {
+		return err
+	}
+	success, err := parseBool(fields[2])
+	if err != nil {
+		return err
+	}
+	level, err := parseInt(fields[3])
+	if err != nil {
+		return err
+	}
+	event.ChallengeEnd = EventChallengeEnd{
+		Timestamp:  ts,
+		InstanceID: instanceID,
+		Success:    success,
+		Level:      level,
 	}
 	return nil
 }

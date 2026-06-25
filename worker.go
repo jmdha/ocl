@@ -2,13 +2,12 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
-	"ocl/db"
 	"ocl/wcl"
+	"os"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -16,101 +15,130 @@ import (
 
 func worker(id int) {
 	var job int64
-	var data []byte
+	var path string
 	var err error
 	for {
-		job, data, err = db.ImportClaim()
+		err = db.QueryRow(`
+		update import
+		set status = 'processing'
+		where id = (
+			select id
+			from import
+			where status = 'pending'
+			limit 1
+		) returning id, path;
+		`).Scan(&job, &path)
 		if errors.Is(err, sql.ErrNoRows) {
 			time.Sleep(time.Second)
 			continue
 		}
 
-		log.Printf("[worker %d] processing %d", id, job)
-		err = process(job, data)
+		log.Printf("[worker %d] processing job %d", id, job)
+		err = clean(job)
 		if err != nil {
-			log.Printf("[worker %d] failed to process job %d: %v", id, job, err)
-			err = db.ImportSetFailed(job, err.Error())
-			if err != nil {
-				log.Printf("[worker %d] failed to error %d: %v", id, job, err)
-			}
+			log.Printf("[worker %d] clean %v", id, err)
+			db.Exec(`
+				update import 
+				set status = 'error'
+				where id = ?
+			`, job)
 			continue
 		}
-
-		err = db.ImportSetDone(job)
+		err = process(job, path)
+		log.Printf("[worker %d] finish %d %v", id, job, err)
 		if err != nil {
-			log.Printf("[worker %d] failed to mark job done %d: %v", id, job, err)
+			clean(job)
+			db.Exec(`
+				update import 
+				set status = 'failed'
+				where id = ?
+			`, job)
+			continue
 		}
-		log.Printf("[worker %d] finished processing %d", id, job)
+		db.Exec(`
+			update import 
+			set status = 'done'
+			where id = ?
+		`, job)
 	}
 }
 
-func process(job int64, data []byte) error {
-	byteReader := bytes.NewReader(data)
-	zstdReader, err := zstd.NewReader(byteReader)
+func clean(job int64) error {
+	_, err := db.Exec(`
+		delete from encounter where import_id = ?
+	`, job)
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: remove encounters", err)
 	}
-	defer zstdReader.Close()
 
+	_, err = db.Exec(`
+		delete from challenge where import_id = ?
+	`, job)
+	if err != nil {
+		return fmt.Errorf("%v: remove challenges", err)
+	}
+
+	_, err = db.Exec(`
+		delete from event_damage where import_id = ?
+	`, job)
+	if err != nil {
+		return fmt.Errorf("%v: remove event_damage", err)
+	}
+
+	return nil
+}
+
+func process(job int64, path string) error {
+	in, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("%v: in file open fail", err)
+	}
+	defer in.Close()
+
+	decoder, err := zstd.NewReader(in)
+	if err != nil {
+		return fmt.Errorf("%v: create decoder failed", err)
+	}
+	defer decoder.Close()
+
+	var scanner *bufio.Scanner
 	var event wcl.Event
-	scanner := bufio.NewScanner(zstdReader)
+
+	scanner = bufio.NewScanner(decoder)
 	for scanner.Scan() {
 		err = wcl.Parse(&event, scanner.Text())
 		if err != nil {
-			return fmt.Errorf("parse error: %v", err)
+			return nil
 		}
 
-		err = process_event(job, event)
+		err = process_event(job, &event)
 		if err != nil {
-			return fmt.Errorf("event process error: %v", err)
+			return nil
 		}
 	}
 
 	if scanner.Err() != nil {
-		return fmt.Errorf("scanner error: %v", scanner.Err())
+		return nil
 	}
 
 	return nil
 }
 
-func process_event(job int64, event wcl.Event) error {
-	switch event.Kind {
+func process_event(job int64, e *wcl.Event) error {
+	var err error
+	switch e.Kind {
 	case wcl.KindSpellDamage:
-		sourceID, err := db.CharacterID(event.SpellDamage.SourceGUID, event.SpellDamage.SourceName)
-		if err != nil {
-			return err
-		}
-
-		targetID, err := db.CharacterID(event.SpellDamage.TargetGUID, event.SpellDamage.TargetName)
-		if err != nil {
-			return err
-		}
-
-		return db.InsertEventDamage(
+		_, err = db.Exec(`
+			insert into event_damage (import_id, timestamp, source_id, target_id, spell_id, amount)
+			values (?, ?, ?, ?, ?, ?)
+		`,
 			job,
-			event.SpellDamage.Timestamp,
-			sourceID,
-			targetID,
-			event.SpellDamage.SpellID,
-			event.SpellDamage.DamageRaw,
-			event.SpellDamage.Damage,
-		)
-	case wcl.KindEncounterStart:
-		return db.EncounterAdd(
-			job,
-			event.EncounterStart.Timestamp,
-			event.EncounterStart.EncounterID,
-			event.EncounterStart.EncounterName,
-			event.EncounterStart.GroupSize,
-			event.EncounterStart.DifficultyID,
-		)
-	case wcl.KindEncounterEnd:
-		return db.EncounterEnd(
-			job,
-			event.EncounterEnd.Timestamp,
-			event.EncounterEnd.EncounterID,
-			event.EncounterEnd.Success,
+			e.SpellDamage.Timestamp,
+			400,
+			200,
+			e.SpellDamage.SpellID,
+			e.SpellDamage.Damage,
 		)
 	}
-	return nil
+	return err
 }

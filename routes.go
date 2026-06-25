@@ -1,27 +1,22 @@
 package main
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"net/http"
-	"ocl/db"
-	"ocl/web"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/klauspost/compress/zstd"
 )
 
 func RouteIndex(w http.ResponseWriter, r *http.Request) {
-	var data web.DataIndex
-	var err error
-
-	data, err = db.WebDataIndex()
-	if err != nil {
-		log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	type Data struct {
 	}
+
+	var data Data
+	var err error
 
 	err = templates.ExecuteTemplate(w, "index.html", data)
 	if err != nil {
@@ -30,15 +25,11 @@ func RouteIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteCharacters(w http.ResponseWriter, r *http.Request) {
-	var data web.DataCharacters
-	var err error
-
-	data, err = db.WebDataCharacters()
-	if err != nil {
-		log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	type Data struct {
 	}
+
+	var data Data
+	var err error
 
 	err = templates.ExecuteTemplate(w, "characters.html", data)
 	if err != nil {
@@ -47,15 +38,11 @@ func RouteCharacters(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteCharactersID(w http.ResponseWriter, r *http.Request) {
-	var data web.DataCharactersID
-	var err error
-
-	data, err = db.WebDataCharactersID()
-	if err != nil {
-		log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	type Data struct {
 	}
+
+	var data Data
+	var err error
 
 	err = templates.ExecuteTemplate(w, "characters_id.html", data)
 	if err != nil {
@@ -64,14 +51,11 @@ func RouteCharactersID(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteEncounters(w http.ResponseWriter, r *http.Request) {
-	var data web.DataEncounters
-	var err error
-
-	data, err = db.WebDataEncounters()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	type Data struct {
 	}
+
+	var data Data
+	var err error
 
 	err = templates.ExecuteTemplate(w, "encounters.html", data)
 	if err != nil {
@@ -80,19 +64,16 @@ func RouteEncounters(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteEncountersID(w http.ResponseWriter, r *http.Request) {
-	var data web.DataEncountersID
+	type Data struct {
+	}
+
+	var data Data
 	var err error
 
 	sid := r.PathValue("id")
 	id, err := strconv.ParseInt(sid, 10, 64)
 	if err != nil || id < 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	data, err = db.WebDataEncountersID(id)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -103,15 +84,11 @@ func RouteEncountersID(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteLogs(w http.ResponseWriter, r *http.Request) {
-	var data web.DataLogs
-	var err error
-
-	data, err = db.WebDataLogs(500, 0)
-	if err != nil {
-		log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	type Data struct {
 	}
+
+	var data Data
+	var err error
 
 	err = templates.ExecuteTemplate(w, "logs.html", data)
 	if err != nil {
@@ -120,7 +97,10 @@ func RouteLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteLogsID(w http.ResponseWriter, r *http.Request) {
-	var data web.DataLogsID
+	type Data struct {
+	}
+
+	var data Data
 	var err error
 
 	sid := r.PathValue("id")
@@ -131,13 +111,6 @@ func RouteLogsID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err = db.WebDataLogsID(id)
-	if err != nil {
-		log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	err = templates.ExecuteTemplate(w, "logs_id.html", data)
 	if err != nil {
 		log.Printf("%v", err)
@@ -145,15 +118,11 @@ func RouteLogsID(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteLogsIDEntry(w http.ResponseWriter, r *http.Request) {
-	var data web.DataLogsIDEntry
-	var err error
-
-	data, err = db.WebDataLogsIDEntry()
-	if err != nil {
-		log.Printf("%v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	type Data struct {
 	}
+
+	var data Data
+	var err error
 
 	err = templates.ExecuteTemplate(w, "logs_id_entry.html", data)
 	if err != nil {
@@ -177,42 +146,49 @@ func RouteUpload(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, MaxSize)
 	defer r.Body.Close()
 
-	importID, err := db.ImportAdd()
+	err := os.MkdirAll("logs", os.ModePerm)
 	if err != nil {
-		log.Printf("upload failed: %v", err)
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+
+	}
+	file, err := os.CreateTemp("logs", "")
+	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	var buf bytes.Buffer
-	encoder, err := zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.SpeedDefault))
+	encoder, err := zstd.NewWriter(file)
 	if err != nil {
-		log.Printf("upload failed: %v", err)
-		db.ImportSetFailed(importID, err.Error())
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer encoder.Close()
 
 	_, err = io.Copy(encoder, r.Body)
 	if err != nil {
-		log.Printf("upload failed: %v", err)
-		db.ImportSetFailed(importID, err.Error())
+		log.Print(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err = encoder.Close()
 	if err != nil {
-		log.Printf("upload failed: %v", err)
-		db.ImportSetFailed(importID, err.Error())
+		log.Print(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = db.ImportSetPending(importID, buf.Bytes())
+	_, err = db.Exec(
+		`insert into import(timestamp, path, status) values (?, ?, ?)`,
+		time.Now(),
+		file.Name(),
+		"pending",
+	)
 	if err != nil {
-		log.Printf("upload failed: %v", err)
+		log.Print(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
