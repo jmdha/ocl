@@ -1,14 +1,2 @@
 all:
-	go mod tidy
-	go fmt ./...
-	go test ./...
-	go build .
-
-run: all
-	./ocl
-
-watch:
-	air .
-
-test:
-	go test ./...
+	gcc -Wall -ggdb src/main.c src/server.c -o ocl
