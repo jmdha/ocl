@@ -20,6 +20,7 @@ struct request {
 	char version[16];
 	struct header headers[32];
 	int header_count;
+	size_t bread;
 };
 
 struct response {
@@ -60,22 +61,44 @@ static void server_dispatch(struct request* req, struct response* res) {
 
 static int req_parse(struct request* req, int fd) {
 	char buf[8192];
-	FILE* fp = fdopen(fd, "r");
-	char* r = fgets(buf, sizeof(buf), fp);
-	if (r == NULL)
-		return -1;
+	int o = 0;
+	while (1) {
+		char c;
+		int r = read(fd, &c, 1);
+		if (r <= 0)
+			return -1;
+		if (o >= 8192)
+			break;
+		buf[o++] = c;
+		if (c == '\n')
+			break;
+	}
+	buf[o] = '\0';
 	if (sscanf(buf, "%7s %1023s %15s", req->method, req->uri, req->version) != 3)
 		return -1;
 
 	while (1) {
-		r = fgets(buf, sizeof(buf), fp);
-		if (r == NULL)
-			return -1;
+		o = 0;
+		memset(buf, 0, sizeof(buf));
+		while (1) {
+			char c;
+			int r = read(fd, &c, 1);
+			if (r <= 0)
+				return -1;
+			if (o >= 8192)
+				break;
+			buf[o++] = c;
+			if (c == '\n')
+				break;
+		}
+		buf[o] = '\0';
 		if (buf[0] == '\r' && buf[1] == '\n')
 			break;
 		struct header* header = &req->headers[req->header_count++];
-		if (sscanf(buf, "%63[^:]: %1023[^\r\n]", header->key, header->val) != 2)
+		if (sscanf(buf, "%63[^:]: %1023[^\r\n]", header->key, header->val) != 2) {
+			printf("Invalid header\n");
 			return -1;
+		}
 	}
 
 	return 0;
@@ -106,19 +129,18 @@ void server_listen(int port) {
 			perror("accept");
 			continue;
 		}
-		printf("received request\n");
 
 		struct request  req = { 0 };
 		struct response res = { 0 };
 		res.fd = rfd;
+		req.fd = rfd;
 		if (req_parse(&req, rfd) != 0) {
 			res_status(&res, STATUS_BAD_REQUEST);
 			close(rfd);
 			continue;
 		}
-		printf("parsed request\n");
+		printf("%s %s\n", req.method, req.uri);
 		server_dispatch(&req, &res);
-		printf("did dispatch\n");
 
 		int r;
 		if (res.status == STATUS_OK)
@@ -130,6 +152,12 @@ void server_listen(int port) {
 			continue;
 		}
 		char buf[8192];
+		snprintf(buf, sizeof(buf), "Connection: close\r\n");
+		r = write(res.fd, buf, strlen(buf));
+		if (r == -1) {
+			close(rfd);
+			continue;
+		}
 		snprintf(buf, sizeof(buf), "Content-Length: %d\r\n", res.len);
 		r = write(res.fd, buf, strlen(buf));
 		if (r == -1) {
@@ -150,6 +178,23 @@ void server_listen(int port) {
 		close(rfd);
 	}
 	close(sfd);
+}
+
+int req_read(struct request* req, char* buf, int cap) {
+	for (size_t i = 0; i < req->header_count; i++)
+		if (strcmp(req->headers[i].key, "Content-Length") == 0) {
+			int tcap = atoi(req->headers[i].val);
+			if (req->bread >= tcap)
+				return 0;
+			if (tcap - req->bread < cap)
+				cap = tcap - req->bread;
+			break;
+		}
+	int bread = read(req->fd, buf, cap);
+	if (bread == -1)
+		return -1;
+	req->bread += bread;
+	return bread;
 }
 
 void res_write(struct response* res, const char* buf, int len) {

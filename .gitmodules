@@ -1,0 +1,3 @@
+[submodule "lib/warlogs"]
+	path = lib/warlogs
+	url = https://github.com/jmdha/warlogs.git
