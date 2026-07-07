@@ -12,6 +12,7 @@
 #include "embed.h"
 #include "utils.h"
 #include "worker.h"
+#include "log.h"
 
 static char* log_dir = "upload";
 
@@ -32,20 +33,20 @@ void r_api_upload(struct request* req, struct response* res) {
 	int    id;
 
 	if ((id = db_add_upload()) < 0) {
-		printf("db_add_upload failed\n");
+		log_error("r_api_upload(db_add_upload): error");
 		res_status(res, STATUS_INTERNAL_SERVER_ERROR);
 		return;
 	}
 
 	if (ranfile(&fp, path, sizeof(path), log_dir) != 0) {
-		printf("ranfile failed\n");
+		log_error("r_api_upload(ranfile): error");
 		db_set_upload_error(id, "ranfile", strlen("ranfile"));
 		res_status(res, STATUS_INTERNAL_SERVER_ERROR);
 		return;
 	}
 
 	if (db_set_upload_path(id, path, strlen(path)) != 0) {
-		printf("db_set_upload_path failed\n");
+		log_error("r_api_upload(path): error");
 		db_set_upload_error(id, "upload path", strlen("upload path"));
 		res_status(res, STATUS_INTERNAL_SERVER_ERROR);
 		return;
@@ -54,7 +55,7 @@ void r_api_upload(struct request* req, struct response* res) {
 	size = 0;
 	while ((r = req_read(req, buf, sizeof(buf))) != 0) {
 		if (r < 0) {
-			printf("pipe read failed\n");
+			log_error("r_api_upload(pipe): error");
 			fclose(fp);
 			unlink(path);
 			db_set_upload_error(id, "buffer read", strlen("buffer read"));

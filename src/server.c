@@ -7,6 +7,7 @@
 #include <fcntl.h>
 
 #include "server.h"
+#include "log.h"
 
 struct header {
 	char key[64];
@@ -146,7 +147,7 @@ void server_listen(int port) {
 			close(rfd);
 			continue;
 		}
-		printf("%s %s\n", req.method, req.uri);
+		log_info("%s %s\n", req.method, req.uri);
 		server_dispatch(&req, &res);
 
 		int r;
