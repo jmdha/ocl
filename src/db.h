@@ -15,5 +15,6 @@ int  db_add_character(const char* guid_ptr, size_t guid_len, const char* name_pt
 int  db_set_upload_path(int id, const char* path_ptr, size_t path_len);
 int  db_set_upload_done(int id, size_t size);
 int  db_set_upload_error(int id, const char* err_ptr, size_t err_len);
+int  db_lock_job();
 
 #endif

@@ -179,3 +179,7 @@ int db_set_upload_error(int id, const char* err_ptr, size_t err_len) {
 		return -1;
 	}
 }
+
+int db_lock_job() {
+
+}

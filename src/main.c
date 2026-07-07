@@ -11,13 +11,9 @@
 #include "db.h"
 #include "embed.h"
 #include "utils.h"
+#include "worker.h"
 
 static char* log_dir = "upload";
-
-void r_style(struct request* req, struct response* res) {
-	res_write(res, STYLE, sizeof(STYLE));
-	res_status(res, STATUS_OK);
-}
 
 void r_index(struct request* req, struct response* res) {
 	res_write(res, INDEX, sizeof(INDEX));
@@ -80,7 +76,8 @@ int main(int argc, char** argv) {
 
 	db_init("ocl.db");
 
-	server_add("/style.css",      &r_style);
+	workers(4);
+
 	server_add("/",               &r_index);
 	server_add("/index.html",     &r_index);
 	server_add("/api/characters", &r_api_characters);

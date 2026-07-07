@@ -35,8 +35,14 @@ struct route {
 	void (*f)(struct request*, struct response*);
 };
 
+int SOCKET = 0;
 static struct route* routes = NULL;
 int routes_len = 0, routes_cap = 0;
+
+void fini() {
+	if (SOCKET)
+		close(SOCKET);
+}
 
 void server_add(const char* path, void (*f)(struct request*, struct response*)) {
 	if (routes_len + 1 > routes_cap) {
@@ -105,9 +111,10 @@ static int req_parse(struct request* req, int fd) {
 }
 
 void server_listen(int port) {
-	int sfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sfd == -1)
+	SOCKET = socket(AF_INET, SOCK_STREAM, 0);
+	if (SOCKET == -1)
 		perror("socket"), exit(1);
+	atexit(fini);
 
 	struct sockaddr_in addr;
 	int addr_len = sizeof(addr);
@@ -116,15 +123,15 @@ void server_listen(int port) {
 	addr.sin_port        = htons(port);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	if (bind(sfd, (struct sockaddr*) &addr, addr_len) == -1)
+	if (bind(SOCKET, (struct sockaddr*) &addr, addr_len) == -1)
 		perror("bind"), exit(1);
 
-	if (listen(sfd, SOMAXCONN) == -1)
+	if (listen(SOCKET, SOMAXCONN) == -1)
 		perror("listen"), exit(1);
 
 	printf("server listening on :%d\n", port);
 	while (1) {
-		int rfd = accept(sfd, (struct sockaddr*) &addr, (socklen_t*) &addr_len);
+		int rfd = accept(SOCKET, (struct sockaddr*) &addr, (socklen_t*) &addr_len);
 		if (rfd == -1) {
 			perror("accept");
 			continue;
@@ -177,7 +184,6 @@ void server_listen(int port) {
 
 		close(rfd);
 	}
-	close(sfd);
 }
 
 int req_read(struct request* req, char* buf, int cap) {
