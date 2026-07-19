@@ -19,10 +19,18 @@
 html {
 	overflow-y: scroll;
 	background-color: var(--bg);
+	height: 100%;
 }
 
 body {
 	font-family: monospace;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+main {
+	flex: 1;
 }
 
 a, p {

@@ -11,7 +11,7 @@ void handle_metrics_requests(struct mg_connection* c, struct db* db) {
 		mg_http_reply(c, 500, "", "%s", "internal server error\n");
 		return;
 	}
-	mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%d", requests);
+	mg_http_reply(c, 200, "", "%d", requests);
 }
 
 void handle_upload(struct mg_connection* c) {
