@@ -2,3 +2,4 @@ upload/*
 ocl
 ocl.sql
 /ocl.db
+/compile_commands.json

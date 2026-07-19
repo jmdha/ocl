@@ -5,181 +5,104 @@
 
 #include "db.h"
 
-sqlite3* DB;
+const char* schema =
+"create table if not exists requests ( "
+"	id integer primary key,        "
+"       method string not null,        "
+"       uri string not null            "
+");                                    ";
 
-static const char* SQL_INIT = 
-"create table if not exists requests (   "
-"	id integer primary key,          "
-"       guid text not null,              "
-"       name text not null               "
-");                                      "
-"create table if not exists uploads (    "
-"	id integer primary key,          "
-"       status text not null,            "
-"       path text,                       "
-"       size integer,                    "
-"       error text,                      "
-"       check (status in (               "
-"              'uploading',              "
-"              'done',                   "
-"              'error'                   "
-"             )                          "
-"       )                                "
-");                                      "
-"create table if not exists characters ( "
-"	id integer primary key,          "
-"       guid text not null unique,       "
-"       name text not null               "
-");                                      "
-"create table if not exists spells (     "
-"	id integer primary key,          "
-"       name text not null               "
-");                                      ";
+const char* sql_requests_add = "insert into requests (method, uri) values (?, ?);";
 
-void db_init(const char* conn) {
-	int   err;
-	char* msg;
-	if ((err = sqlite3_open(conn, &DB)) != SQLITE_OK) {
-		fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(DB));
-    		sqlite3_close(DB);
-    		exit(EXIT_FAILURE);
+const char* sql_requests_count = "select count(*) from requests;";
+
+struct db {
+	sqlite3* db;
+	sqlite3_stmt* requests_add;
+	sqlite3_stmt* requests_count;
+};
+
+int db_init(struct db** db) {
+	*db = calloc(1, sizeof(struct db));
+
+	if (*db == NULL) {
+		fprintf(stderr, "out of memory\n");
+		return 1;
 	}
-	if ((err = sqlite3_exec(DB, SQL_INIT, NULL, NULL, &msg)) != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", msg);
-		sqlite3_free(msg);
-		sqlite3_close(DB);
-		exit(EXIT_FAILURE);
+
+	if (sqlite3_open(":memory:", &(*db)->db) != SQLITE_OK) {
+		fprintf(stderr, "cannot open database: %s\n", sqlite3_errmsg((*db)->db));
+		db_fini(*db);
+		*db = NULL;
+		return 1;
 	}
+
+	if (sqlite3_exec((*db)->db, schema, NULL, NULL, NULL) != SQLITE_OK) {
+		fprintf(stderr, "SQL err: %s\n", sqlite3_errmsg((*db)->db));
+		db_fini(*db);
+		*db = NULL;
+		return 1;
+	}
+
+	if (sqlite3_prepare_v2((*db)->db, sql_requests_add, -1, &(*db)->requests_add, NULL) != SQLITE_OK) {
+		fprintf(stderr, "sql err: %s\n", sqlite3_errmsg((*db)->db));
+		db_fini(*db);
+		*db = NULL;
+		return 1;
+	}
+
+	if (sqlite3_prepare_v2((*db)->db, sql_requests_count, -1, &(*db)->requests_count, NULL) != SQLITE_OK) {
+		fprintf(stderr, "sql err: %s\n", sqlite3_errmsg((*db)->db));
+		db_fini(*db);
+		*db = NULL;
+		return 1;
+	}
+
+	return 0;
 }
 
-int db_add_upload() {
-	static const char*   sql =
-	"insert into uploads (status) "
-	"values ('uploading')         "
-	"returning id;                ";
-	static sqlite3_stmt* stmt = NULL;
-	int                  err;
-	int                  id;
+void db_fini(struct db* db) {
+	if (!db) return;
 
-	if (!stmt && ((err = sqlite3_prepare_v2(DB, sql, -1, &stmt, NULL)) != SQLITE_OK)) {
-		fprintf(stderr, "Prepare failed: %s\n", sqlite3_errmsg(DB));
-        	sqlite3_close(DB);
-		exit(EXIT_FAILURE);
-	}
-
-	if (sqlite3_step(stmt) == SQLITE_ROW) {
-		id = sqlite3_column_int(stmt, 0);
-		sqlite3_reset(stmt);
-		return id;
-	} else {
-		fprintf(stderr, "not row\n");
-		sqlite3_reset(stmt);
-		return -1;
-	}
+	if (db->requests_add)   sqlite3_finalize(db->requests_add);
+	if (db->requests_count) sqlite3_finalize(db->requests_count);
+	if (db->db)             sqlite3_close(db->db);
+	free(db);
 }
 
-int db_add_character(const char* guid_ptr, size_t guid_len, const char* name_ptr, size_t name_len) {
-	static const char*   sql = 
-	"insert into characters (guid, name) "
-	"values (?, ?)                       "
-	"on conflict (guid) do nothing       "
-	"returning id;                       ";
-	static sqlite3_stmt* stmt = NULL;
-	int                  err;
-	int                  id;
-
-	if (!stmt && ((err = sqlite3_prepare_v2(DB, sql, -1, &stmt, NULL)) != SQLITE_OK)) {
-		fprintf(stderr, "Prepare failed: %s\n", sqlite3_errmsg(DB));
-        	sqlite3_close(DB);
-		exit(EXIT_FAILURE);
-	}
-
-	sqlite3_bind_text(stmt, 1, guid_ptr, guid_len, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, name_ptr, name_len, SQLITE_STATIC);
-	if (sqlite3_step(stmt) == SQLITE_ROW) {
-		id = sqlite3_column_int(stmt, 0);
-		sqlite3_reset(stmt);
-		return id;
-	} else {
-		sqlite3_reset(stmt);
-		return -1;
-	}
+int db_upload_new(struct db* db) {
+	return 0;
 }
 
-int db_set_upload_path(int id, const char* path_ptr, size_t path_len) {
-	static const char*   sql =
-	"update uploads set path = ? "
-	"where id = ?;               ";
-	static sqlite3_stmt* stmt = NULL;
-	int                  err;
-
-	if (!stmt && ((err = sqlite3_prepare_v2(DB, sql, -1, &stmt, NULL)) != SQLITE_OK)) {
-		fprintf(stderr, "Prepare failed: %s\n", sqlite3_errmsg(DB));
-        	sqlite3_close(DB);
-		exit(EXIT_FAILURE);
-	}
-
-	sqlite3_bind_text(stmt, 1, path_ptr, path_len, SQLITE_STATIC);
-	sqlite3_bind_int(stmt, 2, id);
-	if (sqlite3_step(stmt) == SQLITE_DONE) {
-		sqlite3_reset(stmt);
-		return 0;
-	} else {
-		sqlite3_reset(stmt);
-		return -1;
-	}
+int db_upload_finish(struct db* db) {
+	return 0;
 }
 
-int db_set_upload_done(int id, size_t size) {
-	static const char*   sql =
-	"update uploads set status = ?, size = ? "
-	"where id = ?;                           ";
-	static sqlite3_stmt* stmt = NULL;
-	int                  err;
+int db_metrics_requests_add(struct db* db, int method_len, const char* method_buf, int uri_len, const char* uri_buf) {
+	sqlite3_bind_text(db->requests_add, 1, method_buf, method_len, SQLITE_STATIC);
+	sqlite3_bind_text(db->requests_add, 2, uri_buf, uri_len, SQLITE_STATIC);
 
-	if (!stmt && ((err = sqlite3_prepare_v2(DB, sql, -1, &stmt, NULL)) != SQLITE_OK)) {
-		fprintf(stderr, "Prepare failed: %s\n", sqlite3_errmsg(DB));
-        	sqlite3_close(DB);
-		exit(EXIT_FAILURE);
+	if (sqlite3_step(db->requests_add) != SQLITE_DONE) {
+		fprintf(stderr, "sql stmt failed with: %s\n", sqlite3_errmsg(db->db));
+		sqlite3_reset(db->requests_add);
+		sqlite3_clear_bindings(db->requests_add);
+		return 1;
 	}
 
-        sqlite3_bind_text(stmt, 1, "done", strlen("done"), SQLITE_STATIC);
-	sqlite3_bind_int(stmt, 2, size);
-	sqlite3_bind_int(stmt, 3, id);
-	if (sqlite3_step(stmt) == SQLITE_DONE) {
-		sqlite3_reset(stmt);
-		return 0;
-	} else {
-		sqlite3_reset(stmt);
-		return -1;
-	}
+	sqlite3_reset(db->requests_add);
+	sqlite3_clear_bindings(db->requests_add);
+	return 0;
 }
 
-int db_set_upload_error(int id, const char* err_ptr, size_t err_len) {
-	static const char*   sql =
-	"update uploads set status = ?, error = ? "
-	"where id = ?;                            ";
-	static sqlite3_stmt* stmt = NULL;
-	int                  err;
+int db_metrics_requests(struct db* db) {
+	int out = -1;
 
-	if (!stmt && ((err = sqlite3_prepare_v2(DB, sql, -1, &stmt, NULL)) != SQLITE_OK)) {
-		fprintf(stderr, "Prepare failed: %s\n", sqlite3_errmsg(DB));
-        	sqlite3_close(DB);
-		exit(EXIT_FAILURE);
-	}
+	if (sqlite3_step(db->requests_count) == SQLITE_ROW)
+		out = sqlite3_column_int(db->requests_count, 0);
+	else
+		fprintf(stderr, "sql stmt failed with: %s\n", sqlite3_errmsg(db->db));
 
-        sqlite3_bind_text(stmt, 1, "error", strlen("error"), SQLITE_STATIC);
-        sqlite3_bind_text(stmt, 2, err_ptr, err_len, SQLITE_STATIC);
-	sqlite3_bind_int(stmt, 3, id);
-	if (sqlite3_step(stmt) == SQLITE_DONE) {
-		sqlite3_reset(stmt);
-		return 0;
-	} else {
-		sqlite3_reset(stmt);
-		return -1;
-	}
-}
-
-int db_lock_job() {
-
+	sqlite3_reset(db->requests_count);
+	sqlite3_clear_bindings(db->requests_count);
+	return out;
 }

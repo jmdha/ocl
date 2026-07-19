@@ -1,3 +1,6 @@
 [submodule "lib/warlogs"]
 	path = lib/warlogs
 	url = https://github.com/jmdha/warlogs.git
+[submodule "lib/mongoose"]
+	path = lib/mongoose
+	url = https://github.com/cesanta/mongoose.git
