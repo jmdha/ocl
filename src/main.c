@@ -10,9 +10,8 @@ static void signal_handler(int sig) {
 }
 
 int main(void) {
-	struct db* db;
-	db_init(&db);
-	web_init(db);
+	db_init();
+	web_init();
 
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
@@ -24,5 +23,5 @@ int main(void) {
 		web_step();
 
 	web_fini();
-	db_fini(db);
+	db_fini();
 }

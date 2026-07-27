@@ -1,5 +1,5 @@
 all: 
-	gcc -Wall -ggdb -lsqlite3 -Ilib -o ocl \
+	gcc -O3 -Wall -ggdb -std=c23 -lzstd -llmdb -Ilib -o ocl \
 	src/main.c src/db.c src/web.c
 
 watch:
