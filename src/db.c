@@ -106,7 +106,5 @@ int db_requests_add(const char* method, const char* uri) {
 }
 
 int db_logs_get_id(uint32_t user_id, const char* file_name) {
-	
-
 	return 0;
 }
