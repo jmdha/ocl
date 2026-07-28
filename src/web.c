@@ -34,6 +34,20 @@ int get_style(struct jhttp_response* res, const struct jhttp_request* req) {
 	return 0;
 }
 
+int get_api_db_size(struct jhttp_response* res, const struct jhttp_request* req) {
+	size_t size = db_size();
+	snprintf(res->body, JHTTP_RESPONSE_MAX, "%zu", size);
+	res->status = 200;
+	return 0;
+}
+
+int get_api_db_size_max(struct jhttp_response* res, const struct jhttp_request* req) {
+	size_t size = db_size_max();
+	snprintf(res->body, JHTTP_RESPONSE_MAX, "%zu", size);
+	res->status = 200;
+	return 0;
+}
+
 int post_api_upload(struct jhttp_response* res, const struct jhttp_request* req) {
 	memset(res->body, 0, JHTTP_RESPONSE_MAX);
 	int user_id;
@@ -70,11 +84,13 @@ int post_api_upload(struct jhttp_response* res, const struct jhttp_request* req)
 }
 
 const struct route routes[] = {
-	{ "GET",  "/",           get_index },
-	{ "GET",  "/index.html", get_index },
-	{ "GET",  "/style.css",  get_style },
-	{ "PUT",  "/api/upload", post_api_upload },
-	{ "POST", "/api/upload", post_api_upload }
+	{ "GET",  "/",                 get_index },
+	{ "GET",  "/index.html",       get_index },
+	{ "GET",  "/style.css",        get_style },
+	{ "GET",  "/api/db_size",      get_api_db_size },
+	{ "GET",  "/api/db_size_max",  get_api_db_size_max },
+	{ "PUT",  "/api/upload",       post_api_upload },
+	{ "POST", "/api/upload",       post_api_upload }
 };
 
 int handler(struct jhttp_response* res, const struct jhttp_request* req) {
