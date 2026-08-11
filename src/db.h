@@ -2,14 +2,23 @@
 #define DB_H
 
 #include <stdint.h>
-#include <stddef.h>
+#include <stdbool.h>
 
-int    db_init();
-void   db_fini();
-size_t db_size();
-size_t db_size_max();
-int    db_requests_add(const char* method, const char* uri);
-int    db_users_get_id();
-int    db_logs_get_id(uint32_t user_id, const char* file_name);
+typedef struct {
+	uint64_t id;
+} db_user;
+
+typedef struct {
+	uint64_t user_id;
+	uint64_t ts;
+	uint32_t lines;
+} db_log;
+
+int db_init();
+int db_fini();
+
+int db_user_new(db_user* user, char key[64]);
+int db_user_get_by_id(db_user* user, uint64_t id);
+int db_user_get_by_key(db_user* user, const char key[64]);
 
 #endif
