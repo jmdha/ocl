@@ -18,12 +18,12 @@ int post_users(struct jhttp_response* res, const struct jhttp_request* req) {
 	char key[64];
 
 	if (db_user_new(&user, key) != 0) {
-		snprintf(res->body, JHTTP_RESPONSE_MAX, "failed to create user");
+		snprintf(res->body, sizeof(res->body), "failed to create user");
 		res->status = 400;
 		return 0;
 	}
 
-	snprintf(res->body, JHTTP_RESPONSE_MAX, "%s", key);
+	snprintf(res->body, sizeof(res->body), "%s", key);
 	res->status = 200;
 	return 0;
 }
@@ -32,12 +32,12 @@ int post_login(struct jhttp_response* res, const struct jhttp_request* req) {
 	db_user user;
 
 	if (db_user_get_by_key(&user, req->body) != 0) {
-		snprintf(res->body, JHTTP_RESPONSE_MAX, "unknown key");
+		snprintf(res->body, sizeof(res->body), "unknown key");
 		res->status = 400;
 		return 0;
 	}
 
-	snprintf(res->body, JHTTP_RESPONSE_MAX, "%lu", user.id);
+	snprintf(res->body, sizeof(res->body), "%lu", user.id);
 	res->status = 200;
 	return 0;
 }
@@ -113,7 +113,7 @@ int handler(struct jhttp_response* res, const struct jhttp_request* req) {
 
 	const char html_404[] = "<!DOCTYPE html><html><body><p>page not found</p></body></html>";
 	res->status = 404;
-	snprintf(res->body, JHTTP_RESPONSE_MAX, "%s", html_404);
+	snprintf(res->body, sizeof(res->body), "%s", html_404);
 	return 0;
 }
 
