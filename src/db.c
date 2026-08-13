@@ -1,163 +1,69 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <lmdb.h>
 #include <time.h>
 #include <openssl/rand.h>
+#include <jbc/jbc.h>
 
 #include "db.h"
 #include "utils.h"
 
-#define NS_USER "id:user"
-#define NS_LOG  "id:log"
-
-MDB_env* env;
-MDB_dbi  dbi_meta;
-MDB_dbi  dbi_user;
-MDB_dbi  dbi_log;
-
-static int next_id(MDB_txn *txn, MDB_dbi dbi_meta, const char *namespace, uint64_t *out_id) {
-	MDB_val key = { .mv_size = strlen(namespace), .mv_data = (void *)namespace };
-	MDB_val val = { 0 };
-	uint64_t id;
-	int rc;
-	
-	rc = mdb_get(txn, dbi_meta, &key, &val);
-	if (rc == MDB_NOTFOUND) {
-		id = 1;
-	} else if (rc == 0) {
-		if (val.mv_size != sizeof(uint64_t)) return -1; // corruption guard
-		memcpy(&id, val.mv_data, sizeof(id));
-		id += 1;
-	} else {
-		return rc; // real LMDB error
-	}
-	
-	val.mv_size = sizeof(id);
-	val.mv_data = &id;
-	rc = mdb_put(txn, dbi_meta, &key, &val, 0);
-	if (rc != 0) return rc;
-	
-	*out_id = id;
-	return 0;
-}
+jbc db_users;
+jbc db_logs;
 
 int db_init() {
-	int      rc  = 0;
-	MDB_txn* txn = NULL;
+	int rc = 0;
 
-	if (rc == 0) rc = mdb_env_create(&env);
-	if (rc == 0) rc = mdb_env_set_maxdbs(env, 32);
-	if (rc == 0) rc = mdb_env_set_mapsize(env, (size_t)1 * 1024 * 1024 * 1024);
-	if (rc == 0) rc = mdb_env_open(env, "db.lmdb", MDB_NOSUBDIR | MDB_NOSYNC, 0664);
+	if (rc == 0) rc = jbc_init(&db_users, "db/users.jbc", sizeof(db_user), 1 * 1024 * 1024 * 1024);
+	if (rc == 0) rc = jbc_init(&db_logs,  "db/logs.jbc",  sizeof(db_log),  1 * 1024 * 1024 * 1024);
 
-	if (rc == 0) rc = mdb_txn_begin(env, NULL, 0, &txn);
-	if (rc == 0) rc = mdb_dbi_open(txn, "meta",   MDB_CREATE, &dbi_meta);
-	if (rc == 0) rc = mdb_dbi_open(txn, "user",   MDB_CREATE, &dbi_user);
-	if (rc == 0) rc = mdb_dbi_open(txn, "log",    MDB_CREATE | MDB_INTEGERKEY, &dbi_log);
-	if (rc == 0) rc = mdb_txn_commit(txn);
-
-	if (rc != 0) {
-		fprintf(stderr, "failed to initialize MDB: %s\n", mdb_strerror(rc));
-		mdb_txn_abort(txn);
-		mdb_env_close(env);
-		return 1;
-	}
-
-	return 0;
+	return rc;
 }
 
 int db_fini() {
-	mdb_env_close(env);
-	return 0;
+	int rc = 0;
+
+	if (rc == 0) jbc_fini(&db_users);
+	if (rc == 0) jbc_fini(&db_logs);
+
+	return rc;
 }
 
 size_t db_size() {
-	MDB_envinfo info;
-	MDB_stat    stat;
-	if (mdb_env_info(env, &info) != MDB_SUCCESS) return 0;
-	if (mdb_env_stat(env, &stat) != MDB_SUCCESS) return 0;
-	return (size_t)(info.me_last_pgno + 1) * stat.ms_psize;
+	size_t size = 0;
+
+	size += jbc_size(&db_users);
+	size += jbc_size(&db_logs);
+
+	return size;
 }
 
 size_t db_size_max() {
-	MDB_envinfo info;
-	mdb_env_info(env, &info);
-	return info.me_mapsize;
+	size_t size = 0;
+
+	size += db_users.max;
+	size += db_logs.max;
+
+	return size;
 }
 
-int db_user_new(db_user* user, char apikey[64]) {
-	int      rc   = 0;
-	MDB_val  key  = { 0 };
-	MDB_val  val  = { 0 };
-	MDB_txn* txn  = NULL;
-	uint8_t  hash[32];
-
-	key.mv_size = sizeof(hash);
-	key.mv_data = hash;
-	val.mv_size = sizeof(db_user);
-	val.mv_data = user;
-
-	if (rc == 0) rc = generate_api_key(apikey);
-	if (rc == 0) rc = hash_api_key(hash, apikey);
-	if (rc == 0) rc = mdb_txn_begin(env, NULL, 0, &txn);
-	if (rc == 0) rc = next_id(txn, dbi_meta, NS_USER, &user->id);
-	if (rc == 0) rc = mdb_put(txn, dbi_user, &key, &val, 0);
-	if (rc == 0) rc = mdb_txn_commit(txn);
-	if (rc != 0 && txn) mdb_txn_abort(txn);
-
-	return rc;
+int db_user_add(const db_user* user, size_t* id) {
+	return jbc_add(&db_users, id, user);
 }
 
-int db_user_get_by_id(db_user* user, uint64_t id) {
-	int         rc     = 0;
-	int         found  = 0;
-	MDB_txn*    txn    = NULL;
-	MDB_cursor* cursor = NULL;
-	MDB_val     key    = { 0 };
-	MDB_val     val    = { 0 };
-	
-	if (rc == 0) rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
-	if (rc == 0) rc = mdb_cursor_open(txn, dbi_user, &cursor);
-	if (rc == 0) rc = mdb_cursor_get(cursor, &key, &val, MDB_FIRST);
-	
-	while (rc == 0 && !found) {
-		if (val.mv_size != sizeof(db_user)) { rc = -1; break; }
-		
-		if (((db_user*)val.mv_data)->id == id) {
-			memcpy(user, val.mv_data, sizeof(db_user));
-			found = 1;
-			break;
+int db_user_get_by_id(const db_user** user, size_t id) {
+	return jbc_ref(&db_users, id, (const void**) user);
+}
+
+int db_user_get_by_key(const db_user** user, size_t* id, const uint8_t apikey_hash[32]) {
+	for (size_t i = 0; i < jbc_len(&db_users); i++) {
+		if (jbc_ref(&db_users, i, (const void**) user) != 0)
+			return 1;
+		if (memcmp((*user)->apikey_hash, apikey_hash, sizeof((*user)->apikey_hash)) == 0) {
+			*id = i;
+			return 0;
 		}
-		
-		rc = mdb_cursor_get(cursor, &key, &val, MDB_NEXT);
 	}
-	
-	if (rc == MDB_NOTFOUND) rc = 0;
-	if (rc == 0 && !found)  rc = MDB_NOTFOUND;
-	
-	if (cursor) mdb_cursor_close(cursor);
-	if (txn)    mdb_txn_abort(txn);
-	
-	return rc;
+	return 1;
 }
 
-int db_user_get_by_key(db_user* user, const char apikey[64]) {
-	int      rc   = 0;
-	MDB_val  key  = { 0 };
-	MDB_val  val  = { 0 };
-	MDB_txn* txn  = NULL;
-	uint8_t  hash[32];
-
-	key.mv_size = sizeof(hash);
-	key.mv_data = hash;
-
-	if (rc == 0) rc = hash_api_key(hash, apikey);
-	if (rc == 0) rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn);
-	if (rc == 0) rc = mdb_get(txn, dbi_user, &key, &val);
-	if (rc == 0) rc = val.mv_size != sizeof(db_user);
-	if (rc == 0) memcpy(user, val.mv_data, sizeof(db_user));
-	if (txn)     mdb_txn_abort(txn);
-
-	return rc;
-}

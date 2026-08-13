@@ -1,6 +1,6 @@
 all: 
-	gcc -Wall -O3 -ggdb -std=c99 -Ilib -o ocl \
-	-lssl -lcrypto -llmdb \
+	gcc -Wall -O3 -ggdb -Ilib -o ocl \
+	-lssl -lcrypto \
 	-D LOG_INFO \
 	src/main.c src/db.c src/log.c src/utils.c
 

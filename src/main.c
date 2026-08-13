@@ -29,9 +29,22 @@ int get_dbsize_max(struct jhttp_response* res, const struct jhttp_request* req) 
 
 int post_users(struct jhttp_response* res, const struct jhttp_request* req) {
 	db_user user;
+	size_t user_id;
 	char key[64];
 
-	if (db_user_new(&user, key) != 0) {
+	if (generate_api_key(key) != 0) {
+		snprintf(res->body, sizeof(res->body), "failed to generate api key");
+		res->status = 500;
+		return 0;
+	}
+
+	if (hash_api_key(user.apikey_hash, key) != 0) {
+		snprintf(res->body, sizeof(res->body), "failed to hash api key");
+		res->status = 500;
+		return 0;
+	}
+
+	if (db_user_add(&user, &user_id) != 0) {
 		snprintf(res->body, sizeof(res->body), "failed to create user");
 		res->status = 400;
 		return 0;
@@ -43,15 +56,23 @@ int post_users(struct jhttp_response* res, const struct jhttp_request* req) {
 }
 
 int post_login(struct jhttp_response* res, const struct jhttp_request* req) {
-	db_user user;
+	const db_user* user;
+	size_t user_id;
+	uint8_t hash[32];
 
-	if (db_user_get_by_key(&user, req->body) != 0) {
+	if (hash_api_key(hash, req->body) != 0) {
+		snprintf(res->body, sizeof(res->body), "failed to hash api key");
+		res->status = 500;
+		return 0;
+	}
+
+	if (db_user_get_by_key(&user, &user_id, hash) != 0) {
 		snprintf(res->body, sizeof(res->body), "unknown key");
 		res->status = 400;
 		return 0;
 	}
 
-	snprintf(res->body, sizeof(res->body), "%lu", user.id);
+	snprintf(res->body, sizeof(res->body), "%lu", user_id);
 	res->status = 200;
 	return 0;
 }
