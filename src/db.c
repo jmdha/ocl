@@ -72,6 +72,20 @@ int db_fini() {
 	return 0;
 }
 
+size_t db_size() {
+	MDB_envinfo info;
+	MDB_stat    stat;
+	if (mdb_env_info(env, &info) != MDB_SUCCESS) return 0;
+	if (mdb_env_stat(env, &stat) != MDB_SUCCESS) return 0;
+	return (size_t)(info.me_last_pgno + 1) * stat.ms_psize;
+}
+
+size_t db_size_max() {
+	MDB_envinfo info;
+	mdb_env_info(env, &info);
+	return info.me_mapsize;
+}
+
 int db_user_new(db_user* user, char apikey[64]) {
 	int      rc   = 0;
 	MDB_val  key  = { 0 };

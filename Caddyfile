@@ -1,8 +1,7 @@
 :8000 {
 	handle /api/* {
-		reverse_proxy localhost:8081
+		reverse_proxy :8001
 	}
 	root * web
 	file_server
-
 }

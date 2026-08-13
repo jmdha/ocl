@@ -13,6 +13,20 @@ static void signal_handler(int sig) {
 	sig_exit = 1;
 }
 
+int get_dbsize(struct jhttp_response* res, const struct jhttp_request* req) {
+	size_t size = db_size();
+	snprintf(res->body, sizeof(res->body), "%zu", size);
+	res->status = 200;
+	return 0;
+}
+
+int get_dbsize_max(struct jhttp_response* res, const struct jhttp_request* req) {
+	size_t size = db_size_max();
+	snprintf(res->body, sizeof(res->body), "%zu", size);
+	res->status = 200;
+	return 0;
+}
+
 int post_users(struct jhttp_response* res, const struct jhttp_request* req) {
 	db_user user;
 	char key[64];
@@ -98,10 +112,12 @@ typedef struct {
 } route;
 
 const route routes[] = {
-	{ "POST", "/users", post_users },
-	{ "POST", "/login", post_login },
-	{ "GET",  "/upload", get_upload },
-	{ "POST", "/upload", post_upload },
+	{ "GET",  "/api/db_size",     get_dbsize },
+	{ "GET",  "/api/db_size_max", get_dbsize_max },
+	{ "POST", "/api/users",       post_users },
+	{ "POST", "/api/login",       post_login },
+	{ "GET",  "/api/upload",      get_upload },
+	{ "POST", "/api/upload",      post_upload },
 };
 
 int handler(struct jhttp_response* res, const struct jhttp_request* req) {
@@ -119,7 +135,7 @@ int handler(struct jhttp_response* res, const struct jhttp_request* req) {
 
 int main(void) {
 	struct jhttp jhttp;
-	jhttp_init(&jhttp, 8000, handler);
+	jhttp_init(&jhttp, 8001, handler);
 	db_init();
 
 	signal(SIGINT,  signal_handler);
