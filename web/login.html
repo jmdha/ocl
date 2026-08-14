@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css" />
+        <script
+            src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"
+            integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+            crossorigin="anonymous"
+        ></script>
+
+        <title>Open Combat Logs</title>
+    </head>
+    <body>
+        <nav>
+            <a href="/index.html">[/]</a>
+            <a href="/characters.html">[/characters]</a>
+            <a href="/encounters.html">[/encounters]</a>
+            <a href="/logs.html">[/logs]</a>
+            <a href="/login.html">[/login]</a>
+            <a href="/metrics/">[/metrics]</a>
+        </nav>
+        <main>
+            <article>
+                <h2>Sign in with your key</h2>
+
+                <form
+                    hx-post="/api/login"
+                    hx-target="#login-status"
+                    hx-swap="innerHTML"
+                    hx-on::after-request="if(!event.detail.successful) event.target.querySelector('#login-status').textContent = 'Sign in failed (' + event.detail.xhr.status + ').'"
+                >
+                    <label for="api-key">API key</label>
+                    <input
+                        type="password"
+                        id="api-key"
+                        name="apiKey"
+                        required
+                        autocomplete="off"
+                        spellcheck="false"
+                        placeholder="6e56e45cd1954c4f7c5b752cc58f7d99297608a…"
+                    />
+                    <button type="submit">Sign in</button>
+                    <p><output id="login-status"></output></p>
+                </form>
+
+                <hr />
+
+                <form hx-post="/api/users" hx-target="#new-key" hx-swap="innerHTML">
+                    <p>Don't have a key? Create one to get started.</p>
+                    <button type="submit">Generate key</button>
+                </form>
+
+                <p><output id="new-key"></output></p>
+            </article>
+        </main>
+    </body>
+</html>
