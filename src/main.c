@@ -58,9 +58,20 @@ int post_users(struct jhttp_response* res, const struct jhttp_request* req) {
 int post_login(struct jhttp_response* res, const struct jhttp_request* req) {
 	const db_user* user;
 	size_t user_id;
+	char key[64];
 	uint8_t hash[32];
 
-	if (hash_api_key(hash, req->body) != 0) {
+
+	printf("Body: %s\n", req->body);
+	if (sscanf(req->body, "apikey=%s", key) != 1) {
+		snprintf(res->body, sizeof(res->body), "malfored apikey");
+		res->status = 400;
+		return 0;
+	}
+
+	printf("Parsed: %s\n", key);
+
+	if (hash_api_key(hash, key) != 0) {
 		snprintf(res->body, sizeof(res->body), "failed to hash api key");
 		res->status = 500;
 		return 0;
