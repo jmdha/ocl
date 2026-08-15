@@ -7,24 +7,24 @@
 
 struct mg_mgr mgr;
 
-uint32_t post_users(struct mg_connection* c, struct mg_http_message* hm) {
+void post_users(struct mg_connection* c, struct mg_http_message* hm) {
 	db_user user;
 	size_t user_id;
 
 	if (gen_ran(user.key, sizeof(user.key)) != 0) {
 		mg_http_reply(c, 500, "", "Internal server error\n");
-		return 500;
+		return;
 	}
+
 	if (db_user_add(&user, &user_id) != 0) {
 		mg_http_reply(c, 500, "", "Internal server error\n");
-		return 500;
+		return;
 	}
 
 	mg_http_reply(c, 201, "", "%s\n", user.key);
-	return 201;
 }
 
-uint32_t post_login(struct mg_connection *c, struct mg_http_message *hm) {
+void post_login(struct mg_connection *c, struct mg_http_message *hm) {
 	const db_user* user;
 	size_t user_id;
 	char token[256];
@@ -34,11 +34,12 @@ uint32_t post_login(struct mg_connection *c, struct mg_http_message *hm) {
 
 	if (len <= 0) {
 		mg_http_reply(c, 400, "", "Missing token\n");
-		return 400;
+		return;
 	}
+
 	if (db_user_get_by_key(&user, &user_id, token) != 0) {
 		mg_http_reply(c, 400, "", "Invalid token\n");
-		return 400;
+		return;
 	}
 
 	mg_snprintf(headers, sizeof(headers),
@@ -48,29 +49,19 @@ uint32_t post_login(struct mg_connection *c, struct mg_http_message *hm) {
 	            token);
 
 	mg_http_reply(c, 303, headers, "{}\n");
-	return 303;
 }
 
 void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
 	if (ev != MG_EV_HTTP_MSG) return;
 
 	struct mg_http_message *hm = (struct mg_http_message *) ev_data;
-	db_request req = { 0 };
-	size_t req_id;
-
-	snprintf(req.path,   sizeof(req.path),   "%.*s", (int) hm->uri.len,    hm->uri.buf);
-	snprintf(req.method, sizeof(req.method), "%.*s", (int) hm->method.len, hm->method.buf);
-	memcpy(req.ip, c->rem.addr.ip, sizeof(req.ip));
-	req.is_ip6 = c->rem.is_ip6;
-	req.ts = current_time_ns();
 
 	if (mg_match(hm->uri, mg_str("/api/#"), NULL)) {
 		if (mg_match(hm->method, mg_str("POST"), NULL) && mg_match(hm->uri, mg_str("/api/users"), NULL))
-			req.status = post_users(c, hm);
+			post_users(c, hm);
 		else if (mg_match(hm->method, mg_str("POST"), NULL) && mg_match(hm->uri, mg_str("/api/login"), NULL))
-			req.status = post_login(c, hm);
+			post_login(c, hm);
 		else {
-			req.status = 404;
 			mg_http_reply(c, 404, "", "Not found\n");
 		}
 	} else {
@@ -79,9 +70,6 @@ void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
 		};
 		mg_http_serve_dir(c, hm, &opts);
 	}
-
-	req.dur = current_time_ns() - req.ts;
-	db_request_add(&req, &req_id);
 }
 
 int web_init(int port) {
