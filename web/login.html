@@ -13,17 +13,9 @@
         <title>Open Combat Logs</title>
     </head>
     <body>
-        <nav>
-            <a href="/index.html">[/]</a>
-            <a href="/characters.html">[/characters]</a>
-            <a href="/encounters.html">[/encounters]</a>
-            <a href="/logs.html">[/logs]</a>
-            <a href="/login.html">[/login]</a>
-            <a href="/metrics/">[/metrics]</a>
-        </nav>
         <main>
             <article>
-                <h2>Sign in with your key</h2>
+                <h2>Sign in with your token</h2>
 
                 <form
                     hx-post="/api/login"
@@ -31,11 +23,11 @@
                     hx-swap="innerHTML"
                     hx-on::after-request="if(!event.detail.successful) event.target.querySelector('#login-status').textContent = 'Sign in failed (' + event.detail.xhr.status + ').'"
                 >
-                    <label for="api-key">API key</label>
+                    <label for="token">Token</label>
                     <input
                         type="password"
-                        id="api-key"
-                        name="apikey"
+                        id="token"
+                        name="token"
                         required
                         autocomplete="off"
                         spellcheck="false"
@@ -45,14 +37,14 @@
                     <p><output id="login-status"></output></p>
                 </form>
 
-                <hr />
+                <hr/>
 
-                <form hx-post="/api/users" hx-target="#new-key" hx-swap="innerHTML">
-                    <p>Don't have a key? Create one to get started.</p>
-                    <button type="submit">Generate key</button>
+                <form hx-post="/api/users" hx-target="#new-token" hx-swap="innerHTML">
+                    <p>Don't have a token? Create one to get started.</p>
+                    <button type="submit">Generate token</button>
                 </form>
 
-                <p><output id="new-key"></output></p>
+                <p><output id="new-token"></output></p>
             </article>
         </main>
     </body>

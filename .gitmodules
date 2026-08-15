@@ -1,9 +1,0 @@
-[submodule "lib/warlogs"]
-	path = lib/warlogs
-	url = https://github.com/jmdha/warlogs.git
-[submodule "lib/jhttp"]
-	path = lib/jhttp
-	url = https://github.com/jmdha/jhttp.git
-[submodule "lib/jbc"]
-	path = lib/jbc
-	url = https://github.com/jmdha/jbc

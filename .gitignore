@@ -7,3 +7,4 @@ ocl.sql
 /db
 /index.html
 /access.log
+web/*.gz
