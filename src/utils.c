@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/random.h>
+#include <time.h>
 
 #include "utils.h"
 
@@ -31,4 +32,10 @@ int gen_ran(char *out, size_t size) {
 	
 	out[chars] = '\0';
 	return 0;
+}
+
+uint64_t current_time_ns(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 }

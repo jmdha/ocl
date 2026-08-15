@@ -1,39 +1,45 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css" />
-        <script
-            src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"
-            integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
-            crossorigin="anonymous"
-        ></script>
-
-        <title>Open Combat Logs</title>
-    </head>
-    <body>
-        <main>
-            <article>
-                <h2>Sign in with your token</h2>
-
-		<form method="post" action="/api/login">
-		  <label>
-		    Token
-		    <input name="token" required>
-		  </label>
-		
-		  <button type="submit">Log in</button>
-		</form>
-                <hr/>
-
-                <form hx-post="/api/users" hx-target="#new-token" hx-swap="innerHTML">
-                    <p>Don't have a token? Create one to get started.</p>
-                    <button type="submit">Generate token</button>
-                </form>
-
-                <p><output id="new-token"></output></p>
-            </article>
-        </main>
-    </body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css" />
+    <script
+    src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"
+    integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+    crossorigin="anonymous"
+    >
+    </script>
+    <title>
+      Open Combat Logs
+    </title>
+  </head>
+  <body>
+    <main>
+      <article>
+        <h2>
+          Sign in with your token
+        </h2>
+        <form method="post" action="/api/login" style="display: flex; align-items: center; gap: 8px;">
+          <input id="token" name="token" required>
+          <button type="submit">
+            Log in
+          </button>
+        </form>
+        <hr/>
+        <form hx-post="/api/users" hx-target="#new-token" hx-swap="innerHTML">
+          <p>
+            Don't have a token? Create one to get started.
+          </p>
+          <button type="submit">
+            Generate token
+          </button>
+        </form>
+        <p>
+          <output id="new-token">
+          </output>
+        </p>
+      </article>
+    </main>
+  </body>
 </html>

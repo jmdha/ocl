@@ -9,12 +9,14 @@
 
 jbc* db_users;
 jbc* db_logs;
+jbc* db_requests;
 
 int db_init() {
 	int rc = 0;
 
-	if (rc == 0) rc = jbc_init(&db_users, "db/users.jbc", sizeof(db_user), 1 * 1024 * 1024 * 1024);
-	if (rc == 0) rc = jbc_init(&db_logs,  "db/logs.jbc",  sizeof(db_log),  1 * 1024 * 1024 * 1024);
+	if (rc == 0) rc = jbc_init(&db_users,    "db/users.jbc",    sizeof(db_user),     1 * 1024 * 1024 * 1024);
+	if (rc == 0) rc = jbc_init(&db_logs,     "db/logs.jbc",     sizeof(db_log),      1 * 1024 * 1024 * 1024);
+	if (rc == 0) rc = jbc_init(&db_requests, "db/requests.jbc", sizeof(db_requests), 1 * 1024 * 1024 * 1024);
 
 	return rc;
 }
@@ -24,6 +26,7 @@ int db_fini() {
 
 	if (rc == 0) jbc_fini(db_users);
 	if (rc == 0) jbc_fini(db_logs);
+	if (rc == 0) jbc_fini(db_requests);
 
 	return rc;
 }
@@ -48,3 +51,10 @@ int db_user_get_by_key(const db_user** user, size_t* id, const char key[32]) {
 	return 1;
 }
 
+int db_request_add(const db_request* req, size_t* id) {
+	return jbc_add(db_requests, id, req);
+}
+
+int db_request_get_by_id(const db_request** req, size_t id) {
+	return jbc_ref(db_requests, id, (const void**) req);
+}
