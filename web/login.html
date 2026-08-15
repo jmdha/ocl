@@ -17,26 +17,14 @@
             <article>
                 <h2>Sign in with your token</h2>
 
-                <form
-                    hx-post="/api/login"
-                    hx-target="#login-status"
-                    hx-swap="innerHTML"
-                    hx-on::after-request="if(!event.detail.successful) event.target.querySelector('#login-status').textContent = 'Sign in failed (' + event.detail.xhr.status + ').'"
-                >
-                    <label for="token">Token</label>
-                    <input
-                        type="password"
-                        id="token"
-                        name="token"
-                        required
-                        autocomplete="off"
-                        spellcheck="false"
-                        placeholder="6e56e45cd1954c4f7c5b752cc58f7d99297608a…"
-                    />
-                    <button type="submit">Sign in</button>
-                    <p><output id="login-status"></output></p>
-                </form>
-
+		<form method="post" action="/api/login">
+		  <label>
+		    Token
+		    <input name="token" required>
+		  </label>
+		
+		  <button type="submit">Log in</button>
+		</form>
                 <hr/>
 
                 <form hx-post="/api/users" hx-target="#new-token" hx-swap="innerHTML">

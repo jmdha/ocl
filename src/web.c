@@ -41,11 +41,12 @@ void post_login(struct mg_connection *c, struct mg_http_message *hm) {
 	}
 
 	mg_snprintf(headers, sizeof(headers),
+		    "Location: /index.html\r\n"
 	            "Set-Cookie: access_token=%s; Path=/; HttpOnly; Secure; SameSite=Lax\r\n"
 	            "Content-Type: application/json\r\n",
 	            token);
 
-	mg_http_reply(c, 200, headers, "{}\n");
+	mg_http_reply(c, 303, headers, "{}\n");
 }
 
 void ev_handler(struct mg_connection* c, int ev, void* ev_data) {

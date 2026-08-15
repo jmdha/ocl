@@ -14,40 +14,10 @@
 </head>
 <body>
 	<nav>
-		<a href="/index.html">[/]</a>
-		<a href="/characters.html">[/characters]</a>
-		<a href="/encounters.html">[/encounters]</a>
-		<a href="/logs.html">[/logs]</a>
 		<a href="/login.html">[/login]</a>
-		<a href="/metrics/">[/metrics]</a>
 	</nav>
 	<main>
 	<a>Hello?</a>
 	</main>
-	<footer>
-		<a>
-			DB 
-			<span hx-get="/api/db_size" hx-trigger="load, every 60s"
-			      hx-swap="innerHTML"
-			      hx-on::after-swap="this.textContent = formatBytes(this.textContent)">N/A</span>
-			/
-			<span hx-get="/api/db_size_max" hx-trigger="load"
-			      hx-swap="innerHTML"
-			      hx-on::after-swap="this.textContent = formatBytes(this.textContent)">N/A</span>
-		</a>
-	</footer>
 </body>
-<script>
-function formatBytes(str) {
-	let bytes = parseInt(str, 10);
-	if (isNaN(bytes)) return str;
-	const units = ["B", "KB", "MB", "GB", "TB"];
-	let i = 0;
-	while (bytes >= 1024 && i < units.length - 1) {
-		bytes /= 1024;
-		i++;
-	}
-	return (i === 0 ? bytes : bytes.toFixed(1)) + " " + units[i];
-}
-</script>
 </html>
