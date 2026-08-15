@@ -51,19 +51,56 @@ void post_login(struct mg_connection *c, struct mg_http_message *hm) {
 	mg_http_reply(c, 303, headers, "{}\n");
 }
 
+void post_upload(struct mg_connection* c, struct mg_http_message* hm, size_t user_id) {
+	mg_http_reply(c, 501, "", "");
+
+}
+
+int auth(struct mg_http_message* hm, size_t* user_id) {
+	struct mg_str* cookie = mg_http_get_header(hm, "Cookie");
+
+	if (cookie == NULL) {
+		printf("no cookie\n");
+		return 1;
+	}
+
+	struct mg_str token = mg_http_get_header_var(*cookie, mg_str("access_token"));
+	if (!token.buf || token.len == 0) {
+		printf("invalid token str\n");
+		return 1;
+	}
+
+	const db_user* user;
+	if (db_user_get_by_key(&user, user_id, token.buf) != 0) {
+		return 1;
+	}
+
+	return 0;
+}
+
 void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
 	if (ev != MG_EV_HTTP_MSG) return;
 
 	struct mg_http_message *hm = (struct mg_http_message *) ev_data;
 
-	if (mg_match(hm->uri, mg_str("/api/#"), NULL)) {
-		if (mg_match(hm->method, mg_str("POST"), NULL) && mg_match(hm->uri, mg_str("/api/users"), NULL))
+	if (mg_match(hm->uri, mg_str("/api/public/#"), NULL)) {
+		if (mg_match(hm->method, mg_str("POST"), NULL) && mg_match(hm->uri, mg_str("/api/public/users"), NULL))
 			post_users(c, hm);
-		else if (mg_match(hm->method, mg_str("POST"), NULL) && mg_match(hm->uri, mg_str("/api/login"), NULL))
+		else if (mg_match(hm->method, mg_str("POST"), NULL) && mg_match(hm->uri, mg_str("/api/public/login"), NULL))
 			post_login(c, hm);
-		else {
+		else
 			mg_http_reply(c, 404, "", "Not found\n");
+	} else if (mg_match(hm->uri, mg_str("/api/#"), NULL)) {
+		size_t user_id;
+		if (auth(hm, &user_id) != 0) {
+			mg_http_reply(c, 401, "", "Unauthorized\n");
+			return;
 		}
+
+		if (mg_match(hm->method, mg_str("POST"), NULL) && mg_match(hm->uri, mg_str("/api/upload"), NULL))
+			post_users(c, hm);
+		else
+			mg_http_reply(c, 404, "", "Not found\n");
 	} else {
 		struct mg_http_serve_opts opts = {
 			.root_dir = "web"
