@@ -20,14 +20,14 @@
         <h2>
           Sign in with your token
         </h2>
-        <form method="post" action="/api/login" style="display: flex; align-items: center; gap: 8px;">
+        <form method="post" action="/api/public/login" style="display: flex; align-items: center; gap: 8px;">
           <input id="token" name="token" required>
           <button type="submit">
             Log in
           </button>
         </form>
         <hr/>
-        <form hx-post="/api/users" hx-target="#new-token" hx-swap="innerHTML">
+        <form hx-post="/api/public/users" hx-target="#new-token" hx-swap="innerHTML">
           <p>
             Don't have a token? Create one to get started.
           </p>
