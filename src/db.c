@@ -38,7 +38,7 @@ int db_user_get_by_key(const db_user** user, size_t* id, const char key[32]) {
 	for (size_t i = 0; i < jbc_len(db_users); i++) {
 		if (jbc_ref(db_users, i, (const void**) user) != 0)
 			return 1;
-		if (memcmp((*user)->key, key, sizeof((*user)->key) - 1) == 0) {
+		if (memcmp((*user)->key, key, sizeof((*user)->key)) == 0) {
 			*id = i;
 			return 0;
 		}

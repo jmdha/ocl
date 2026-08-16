@@ -5,32 +5,27 @@
 
 #include "utils.h"
 
-int gen_ran(char *out, size_t size) {
+int gen_ran(uint8_t *out, size_t size) {
 	static const char hex[] = "0123456789abcdef";
 	
-	if (out == NULL || size == 0)
+	if (out == NULL)
+		return -1;
+
+	if (size == 0)
 		return -1;
 	
-	size_t chars = size - 1;
-	size_t bytes = (chars + 1) / 2;
-	
-	uint8_t buf[bytes];
-	
-	if (getrandom(buf, bytes, 0) != (ssize_t)bytes)
-		return -1;
-	
-	for (size_t i = 0; i < chars; i++) {
-		uint8_t nibble;
-		
-		if ((i & 1) == 0)
-			nibble = buf[i / 2] >> 4;
-		else
-			nibble = buf[i / 2] & 0x0f;
-		
-		out[i] = hex[nibble];
+	for (size_t i = 0; i < size; i++) {
+		for (;;) {
+			uint8_t tmp;
+			if (getrandom(&tmp, 1, 0) != 1)
+				return -1;
+			if (tmp >= sizeof(hex) - 1)
+				continue;
+			out[i] = hex[tmp];
+			break;
+		}
 	}
 	
-	out[chars] = '\0';
 	return 0;
 }
 

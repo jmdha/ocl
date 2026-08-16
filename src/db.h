@@ -6,7 +6,7 @@
 #include <stddef.h>
 
 typedef struct {
-	char key[32];
+	uint8_t key[32];
 } db_user;
 
 typedef struct {

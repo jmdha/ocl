@@ -21,7 +21,7 @@ void post_users(struct mg_connection* c, struct mg_http_message* hm) {
 		return;
 	}
 
-	mg_http_reply(c, 201, "", "%s\n", user.key);
+	mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
 }
 
 void post_login(struct mg_connection *c, struct mg_http_message *hm) {
