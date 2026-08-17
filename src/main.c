@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #include "db.h"
-#include "web.h"
+#include "http.h"
 
 static volatile sig_atomic_t running = 1;
 

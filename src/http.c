@@ -1,6 +1,6 @@
 #include <openssl/sha.h>
 
-#include "web.h"
+#include "http.h"
 #include "mongoose.h"
 #include "utils.h"
 #include "db.h"
