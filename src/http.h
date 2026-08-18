@@ -1,8 +1,8 @@
-#ifndef WEB_H
-#define WEB_H
+#ifndef HTTP_H
+#define HTTP_H
 
-int web_init(int port);
-int web_fini();
-int web_poll();
+#include "mongoose.h"
+
+void ev_handler(struct mg_connection* c, int ev, void* ev_data);
 
 #endif

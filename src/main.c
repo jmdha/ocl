@@ -3,32 +3,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "mongoose.h"
 #include "db.h"
 #include "http.h"
 
-static volatile sig_atomic_t running = 1;
+static volatile sig_atomic_t run = 1;
 
 static void signal_handler(int sig) {
-    (void) sig;
-    running = 0;
+	(void) sig;
+	run = 0;
 }
 
 int main(int argc, char** argv) {
-	signal(SIGINT, signal_handler);   // Ctrl+C
-	signal(SIGTERM, signal_handler);  // kill <pid>
-					  
-	if (db_init() != 0) {
-		fprintf(stderr, "failed to init db\n");
-		return 1;
-	}
+	struct mg_mgr mgr;
 
-	if (web_init(atoi(argv[1])) != 0) {
-		fprintf(stderr, "failed to init web\n");
-		return 1;
-	}
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
 
-	while (running)
-		web_poll();
+	db_init();
+	mg_mgr_init(&mgr);
+	mg_http_listen(&mgr, argv[1], ev_handler, NULL);
+
+	while (run)
+		mg_mgr_poll(&mgr, 10);
+
 	db_fini();
-	web_fini();
+	mg_mgr_free(&mgr);
 }

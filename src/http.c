@@ -108,28 +108,3 @@ void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
 		mg_http_serve_dir(c, hm, &opts);
 	}
 }
-
-int web_init(int port) {
-	char addr[128];
-	snprintf(addr, sizeof(addr), "http://0.0.0.0:%d", port);
-	
-	mg_mgr_init(&mgr);
-	
-	struct mg_connection *c = mg_http_listen(&mgr, addr, ev_handler, NULL);
-	if (c == NULL) {
-		mg_mgr_free(&mgr);
-		return -1;
-	}
-	
-	return 0;
-}
-
-int web_fini() {
-	mg_mgr_free(&mgr);
-	return 0;
-}
-
-int web_poll() {
-	mg_mgr_poll(&mgr, 1);
-	return 0;
-}
