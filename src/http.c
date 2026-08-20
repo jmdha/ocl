@@ -10,9 +10,9 @@ void users(struct mg_connection* c, struct mg_http_message* hm) {
 	size_t  user_id;
 
 	if (db_user_create(&user, &user_id) == 0)
-		return mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
-	else
 		return mg_http_reply(c, 500, "", "");
+
+	return mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
 }
 
 void login(struct mg_connection *c, struct mg_http_message *hm) {
@@ -21,7 +21,6 @@ void login(struct mg_connection *c, struct mg_http_message *hm) {
 	char token[256];
 
 	mg_http_creds(hm, token, sizeof(token), token, sizeof(token));
-
 	if (db_user_get_by_key(&user, &user_id, token) != 0)
 		return mg_http_reply(c, 400, "", "Invalid token\n");
 
