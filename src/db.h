@@ -17,6 +17,7 @@ typedef struct {
 
 int db_init();
 int db_fini();
+int db_user_create(db_user* user, size_t* id);
 int db_user_add(const db_user* user, size_t* id);
 int db_user_get_by_id(const db_user** user, size_t id);
 int db_user_get_by_key(const db_user** user, size_t* id, const char key[32]);

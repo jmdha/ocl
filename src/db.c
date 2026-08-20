@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "utils.h"
 #include "db.h"
 #include "jbc.h"
 
@@ -23,6 +24,13 @@ int db_fini() {
 	if (rc == 0) jbc_fini(db_users);
 	if (rc == 0) jbc_fini(db_logs);
 
+	return rc;
+}
+
+int db_user_create(db_user* user, size_t* id) {
+	int rc = 0;
+	if (rc == 0) rc = gen_ran(user->key, sizeof(user->key));
+	if (rc == 0) rc = db_user_add(user, id);
 	return rc;
 }
 

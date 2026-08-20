@@ -7,46 +7,32 @@
 
 void users(struct mg_connection* c, struct mg_http_message* hm) {
 	db_user user;
-	size_t user_id;
+	size_t  user_id;
 
-	if (gen_ran(user.key, sizeof(user.key)) != 0) {
-		mg_http_reply(c, 500, "", "Internal server error\n");
-		return;
-	}
-
-	if (db_user_add(&user, &user_id) != 0) {
-		mg_http_reply(c, 500, "", "Internal server error\n");
-		return;
-	}
-
-	mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
+	if (db_user_create(&user, &user_id) == 0)
+		return mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
+	else
+		return mg_http_reply(c, 500, "", "");
 }
 
 void login(struct mg_connection *c, struct mg_http_message *hm) {
-	const db_user* user;
+	const db_user *user;
 	size_t user_id;
 	char token[256];
-	char headers[320];
 
-	int len = mg_http_get_var(&hm->body, "token", token, sizeof(token));
+	mg_http_creds(hm, token, sizeof(token), token, sizeof(token));
 
-	if (len <= 0) {
-		mg_http_reply(c, 400, "", "Missing token\n");
-		return;
-	}
+	if (db_user_get_by_key(&user, &user_id, token) != 0)
+		return mg_http_reply(c, 400, "", "Invalid token\n");
 
-	if (db_user_get_by_key(&user, &user_id, token) != 0) {
-		mg_http_reply(c, 400, "", "Invalid token\n");
-		return;
-	}
-
-	mg_snprintf(headers, sizeof(headers),
-		    "Location: /index.html\r\n"
-	            "Set-Cookie: access_token=%s; Path=/; HttpOnly; Secure; SameSite=Lax\r\n"
-	            "Content-Type: application/json\r\n",
-	            token);
-
-	mg_http_reply(c, 303, headers, "{}\n");
+	return mg_http_reply(
+		c,
+		303,
+		"Location: /index.html\r\n"
+		"Set-Cookie: access_token=%s; Path=/; HttpOnly; Secure; SameSite=Lax\r\n"
+		"Content-Type: application/json\r\n",
+		token
+	);
 }
 
 void upload(struct mg_connection* c, struct mg_http_message* hm) {
