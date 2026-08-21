@@ -5,24 +5,24 @@
 #include "utils.h"
 #include "db.h"
 
-void users(struct mg_connection* c, struct mg_http_message* hm) {
+void post_users(struct mg_connection* c, struct mg_http_message* hm) {
 	db_user user;
 	size_t  user_id;
 
-	if (db_user_create(&user, &user_id) == 0)
+	if (db_user_create(&user, &user_id) != 0)
 		return mg_http_reply(c, 500, "", "");
 
 	return mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
 }
 
-void login(struct mg_connection *c, struct mg_http_message *hm) {
+void post_login(struct mg_connection *c, struct mg_http_message *hm) {
 	const db_user *user;
 	size_t user_id;
 	char token[256];
 
 	mg_http_creds(hm, token, sizeof(token), token, sizeof(token));
 	if (db_user_get_by_key(&user, &user_id, token) != 0)
-		return mg_http_reply(c, 400, "", "Invalid token\n");
+		return mg_http_reply(c, 400, "", "Invalid Token\n");
 
 	return mg_http_reply(
 		c,
@@ -34,9 +34,9 @@ void login(struct mg_connection *c, struct mg_http_message *hm) {
 	);
 }
 
-void upload(struct mg_connection* c, struct mg_http_message* hm) {
-	mg_http_reply(c, 501, "", "");
+void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
 
+	return mg_http_reply(c, 200, "", "");
 }
 
 void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
@@ -47,12 +47,22 @@ void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
 		.root_dir = "web"
 	};
 
-	if (mg_match(hm->uri, mg_str("/api/public/users"), NULL))
-		users(c, hm);
-	else if (mg_match(hm->uri, mg_str("/api/public/login"), NULL))
-		login(c, hm);
-	else if (mg_match(hm->uri, mg_str("/api/upload"), NULL))
-		upload(c, hm);
-	else
+	if (mg_match(hm->uri, mg_str("/api/public/users"), NULL)) {
+		if (mg_match(hm->method, mg_str("POST"), NULL))
+			post_users(c, hm);
+		else
+			mg_http_reply(c, 405, "", "Method Not Allowed\n");
+	} else if (mg_match(hm->uri, mg_str("/api/public/login"), NULL)) {
+		if (mg_match(hm->method, mg_str("POST"), NULL))
+			post_login(c, hm);
+		else
+			mg_http_reply(c, 405, "", "Method Not Allowed\n");
+	} else if (mg_match(hm->uri, mg_str("/api/upload"), NULL)) {
+		if (mg_match(hm->method, mg_str("POST"), NULL))
+			post_users(c, hm);
+		else
+			mg_http_reply(c, 405, "", "Method Not Allowed\n");
+	} else {
 		mg_http_serve_dir(c, hm, &opts);
+	}
 }
