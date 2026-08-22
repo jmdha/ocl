@@ -19,18 +19,26 @@ void post_users(struct mg_connection* c, struct mg_http_message* hm) {
 void post_login(struct mg_connection *c, struct mg_http_message *hm) {
 	size_t user_id;
 	char key[sizeof(((db_user*) 0)->key)];
+	char buf[512];
 
 	mg_http_creds(hm, key, sizeof(key), key, sizeof(key));
 	if (db_user_get_id(&user_id, key) != 0)
 		return mg_http_reply(c, 401, "", "");
 
-	return mg_http_reply(
-		c,
-		303,
+	snprintf(
+		buf,
+		sizeof(buf),
 		"Location: /index.html\r\n"
 		"Set-Cookie: access_token=%s; Path=/; HttpOnly; Secure; SameSite=Lax\r\n"
 		"Content-Type: application/json\r\n",
 		key
+	);
+
+	return mg_http_reply(
+		c,
+		303,
+		buf,
+		""
 	);
 }
 
