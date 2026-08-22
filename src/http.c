@@ -3,6 +3,23 @@
 #include "utils.h"
 #include "db.h"
 
+int get_header_val(struct mg_http_message* hm, char* buf, size_t len, const char* str) {
+	struct mg_str* header;
+
+	header = mg_http_get_header(hm, str);
+
+	if (!header)
+		return 1;
+
+	if (header->len >= len)
+		return 1;
+
+	memcpy(buf, header->buf, header->len);
+	buf[header->len] = '\0';
+
+	return 0;
+}
+
 void post_users(struct mg_connection* c, struct mg_http_message* hm) {
 	db_user user;
 	size_t user_id;
@@ -46,7 +63,6 @@ void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	db_log log;
 	size_t user_id;
 	size_t log_id;
-	struct mg_str* fn_header;
 	char filename[32];
 	char key[32];
 	char buf[64];
@@ -56,14 +72,8 @@ void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	if (db_user_get_id(&user_id, key) != 0)
 		return mg_http_reply(c, 401, "", "");
 
-	if (!(fn_header = mg_http_get_header(hm, "Filename")))
-		return mg_http_reply(c, 400, "", "Missing Filename\n");
-
-	if (fn_header->len >= sizeof(filename))
-		return mg_http_reply(c, 400, "", "Filename Too Long\n");
-
-	memcpy(filename, fn_header->buf, fn_header->len);
-	filename[fn_header->len] = '\0';
+	if (get_header_val(hm, filename, sizeof(filename), "Filename") != 0)
+		return mg_http_reply(c, 400, "", "Invalid Filename\n");
 
 	if (db_log_get_id(&log_id, user_id, filename) != 0) {
 		log.user_id = user_id;
