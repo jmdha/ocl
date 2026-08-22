@@ -1,5 +1,3 @@
-#include <openssl/sha.h>
-
 #include "http.h"
 #include "mongoose.h"
 #include "utils.h"
@@ -7,22 +5,24 @@
 
 void post_users(struct mg_connection* c, struct mg_http_message* hm) {
 	db_user user;
-	size_t  user_id;
+	size_t user_id;
 
-	if (db_user_create(&user, &user_id) != 0)
+	if (gen_ran(user.key, sizeof(user.key)) != 0)
+		return mg_http_reply(c, 500, "", "");
+
+	if (db_user_add(&user, &user_id) != 0)
 		return mg_http_reply(c, 500, "", "");
 
 	return mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
 }
 
 void post_login(struct mg_connection *c, struct mg_http_message *hm) {
-	const db_user *user;
 	size_t user_id;
-	char token[256];
+	char key[sizeof(((db_user*) 0)->key)];
 
-	mg_http_creds(hm, token, sizeof(token), token, sizeof(token));
-	if (db_user_get_by_key(&user, &user_id, token) != 0)
-		return mg_http_reply(c, 400, "", "Invalid Token\n");
+	mg_http_creds(hm, key, sizeof(key), key, sizeof(key));
+	if (db_user_get_id(&user_id, key) != 0)
+		return mg_http_reply(c, 401, "", "");
 
 	return mg_http_reply(
 		c,
@@ -30,12 +30,15 @@ void post_login(struct mg_connection *c, struct mg_http_message *hm) {
 		"Location: /index.html\r\n"
 		"Set-Cookie: access_token=%s; Path=/; HttpOnly; Secure; SameSite=Lax\r\n"
 		"Content-Type: application/json\r\n",
-		token
+		key
 	);
 }
 
-void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
+void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
+	return mg_http_reply(c, 200, "", "");
+}
 
+void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	return mg_http_reply(c, 200, "", "");
 }
 
@@ -58,8 +61,10 @@ void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
 		else
 			mg_http_reply(c, 405, "", "Method Not Allowed\n");
 	} else if (mg_match(hm->uri, mg_str("/api/upload"), NULL)) {
-		if (mg_match(hm->method, mg_str("POST"), NULL))
-			post_users(c, hm);
+		if (mg_match(hm->method, mg_str("GET"), NULL))
+			get_upload(c, hm);
+		else if (mg_match(hm->method, mg_str("POST"), NULL))
+			post_upload(c, hm);
 		else
 			mg_http_reply(c, 405, "", "Method Not Allowed\n");
 	} else {

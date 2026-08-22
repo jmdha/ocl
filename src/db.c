@@ -27,29 +27,46 @@ int db_fini() {
 	return rc;
 }
 
-int db_user_create(db_user* user, size_t* id) {
-	int rc = 0;
-	if (rc == 0) rc = gen_ran(user->key, sizeof(user->key));
-	if (rc == 0) rc = db_user_add(user, id);
-	return rc;
-}
-
 int db_user_add(const db_user* user, size_t* id) {
-	return jbc_add(db_users, id, user);
+	return jbc_add(db_users, id, (const void*) user);
 }
 
-int db_user_get_by_id(const db_user** user, size_t id) {
+int db_user_get(const db_user** user, size_t id) {
 	return jbc_ref(db_users, id, (const void**) user);
 }
 
-int db_user_get_by_key(const db_user** user, size_t* id, const char key[32]) {
+int db_log_add(const db_log* log, size_t* id) {
+	return jbc_add(db_logs, id, (const void*) log);
+}
+
+int db_log_get(const db_log** log, size_t id) {
+	return jbc_ref(db_logs, id, (const void**) log);
+}
+
+int db_user_get_id(size_t* id, const char* key) {
+	db_user* user;
 	for (size_t i = 0; i < jbc_len(db_users); i++) {
-		if (jbc_ref(db_users, i, (const void**) user) != 0)
+		if (jbc_ref(db_users, i, (const void**) &user) != 0)
 			return 1;
-		if (memcmp((*user)->key, key, sizeof((*user)->key)) == 0) {
-			*id = i;
-			return 0;
-		}
+		if (strcmp(key, user->key) != 0)
+			continue;
+		*id = i;
+		return 0;
+	}
+	return 1;
+}
+
+int db_log_get_id(size_t* id, size_t user_id, const char* filename) {
+	db_log* log;
+	for (size_t i = 0; i < jbc_len(db_logs); i++) {
+		if (jbc_ref(db_logs, i, (const void**) &log) != 0)
+			return 1;
+		if (user_id != log->user_id)
+			continue;
+		if (strcmp(filename, log->filename) != 0)
+			continue;
+		*id = i;
+		return 0;
 	}
 	return 1;
 }

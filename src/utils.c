@@ -5,7 +5,7 @@
 
 #include "utils.h"
 
-int gen_ran(uint8_t *out, size_t size) {
+int gen_ran(char *out, size_t size) {
 	static const char hex[] = "0123456789abcdef";
 	
 	if (out == NULL)
@@ -14,7 +14,7 @@ int gen_ran(uint8_t *out, size_t size) {
 	if (size == 0)
 		return -1;
 	
-	for (size_t i = 0; i < size; i++) {
+	for (size_t i = 0; i < size - 1; i++) {
 		for (;;) {
 			uint8_t tmp;
 			if (getrandom(&tmp, 1, 0) != 1)
@@ -25,6 +25,8 @@ int gen_ran(uint8_t *out, size_t size) {
 			break;
 		}
 	}
+
+	out[size - 1] = '\0';
 	
 	return 0;
 }
