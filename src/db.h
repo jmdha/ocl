@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 typedef struct {
+	// TODO: Store hash instead of key directly
 	char key[32];
 } db_user;
 

@@ -8,3 +8,4 @@ ocl.sql
 /index.html
 /access.log
 web/*.gz
+/logs
