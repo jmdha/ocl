@@ -4,9 +4,7 @@
 #include "db.h"
 
 int get_header_val(struct mg_http_message* hm, char* buf, size_t len, const char* str) {
-	struct mg_str* header;
-
-	header = mg_http_get_header(hm, str);
+	struct mg_str* header = mg_http_get_header(hm, str);
 
 	if (!header)
 		return 1;
@@ -16,6 +14,18 @@ int get_header_val(struct mg_http_message* hm, char* buf, size_t len, const char
 
 	memcpy(buf, header->buf, header->len);
 	buf[header->len] = '\0';
+
+	return 0;
+}
+
+int get_header_val_n(struct mg_http_message* hm, size_t* num, const char* str) {
+	struct mg_str* header = mg_http_get_header(hm, str);
+
+	if (!header)
+		return 1;
+
+	if (!mg_str_to_num(*header, 10, num, sizeof(*num)))
+		return 1;
 
 	return 0;
 }
@@ -90,6 +100,39 @@ void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
 }
 
 void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
+	size_t offset;
+	size_t log_id;
+	size_t user_id;
+	char key[32];
+	char filename[32];
+	char buf[64];
+	FILE* fp;
+	struct stat st;
+
+	mg_http_creds(hm, key, sizeof(key), key, sizeof(key));
+	if (db_user_get_id(&user_id, key) != 0)
+		return mg_http_reply(c, 401, "", "");
+
+	if (get_header_val(hm, filename, sizeof(filename), "Filename") != 0)
+		return mg_http_reply(c, 400, "", "Invalid Filename\n");
+
+	if (get_header_val_n(hm, &offset, "Offset") != 0)
+		return mg_http_reply(c, 400, "", "Invalid Offset\n");
+
+	if (db_log_get_id(&log_id, user_id, filename) != 0)
+		return mg_http_reply(c, 400, "", "Unknown Log\n");
+
+	snprintf(buf, sizeof(buf), "logs/%zu", log_id);
+	if (stat(buf, &st) != 0 && offset != 0)
+		return mg_http_reply(c, 400, "", "Unexpected Offset\n");
+
+	if (st.st_size != offset)
+		return mg_http_reply(c, 400, "", "Unexpected Offset\n");
+
+	fp = fopen(buf, "a");
+	fputs(hm->body.buf, fp);
+	fclose(fp);
+
 	return mg_http_reply(c, 200, "", "");
 }
 
