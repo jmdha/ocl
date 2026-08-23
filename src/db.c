@@ -63,6 +63,7 @@ int db_log_get_id(size_t* id, size_t user_id, const char* filename) {
 			return 1;
 		if (user_id != log->user_id)
 			continue;
+		printf("%s | %s\n", filename, log->filename);
 		if (strcmp(filename, log->filename) != 0)
 			continue;
 		*id = i;

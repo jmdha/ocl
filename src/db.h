@@ -12,7 +12,7 @@ typedef struct {
 
 typedef struct {
 	size_t user_id;
-	char filename[32];
+	char filename[64];
 } db_log;
 
 int db_init();

@@ -73,9 +73,9 @@ void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	db_log log;
 	size_t user_id;
 	size_t log_id;
-	char filename[32];
+	char filename[64];
 	char key[32];
-	char buf[64];
+	char buf[128];
 	struct stat st;
 
 	mg_http_creds(hm, key, sizeof(key), key, sizeof(key));
@@ -85,6 +85,8 @@ void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	if (get_header_val(hm, filename, sizeof(filename), "Filename") != 0)
 		return mg_http_reply(c, 400, "", "Invalid Filename\n");
 
+	printf("GET \"%s\"\n", filename);
+
 	if (db_log_get_id(&log_id, user_id, filename) != 0) {
 		log.user_id = user_id;
 		strcpy(log.filename, filename);
@@ -92,7 +94,7 @@ void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
 			return mg_http_reply(c, 500, "", "");
 	}
 
-	snprintf(buf, sizeof(buf), "logs/%zu", log_id);
+	snprintf(buf, sizeof(buf), "logs/%s", filename);
 	if (stat(buf, &st) != 0)
 		return mg_http_reply(c, 200, "", "%zu", 0);
 	else
@@ -104,8 +106,8 @@ void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	size_t log_id;
 	size_t user_id;
 	char key[32];
-	char filename[32];
-	char buf[64];
+	char filename[64];
+	char buf[128];
 	FILE* fp;
 	struct stat st;
 
@@ -122,12 +124,16 @@ void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	if (db_log_get_id(&log_id, user_id, filename) != 0)
 		return mg_http_reply(c, 400, "", "Unknown Log\n");
 
-	snprintf(buf, sizeof(buf), "logs/%zu", log_id);
-	if (stat(buf, &st) != 0 && offset != 0)
-		return mg_http_reply(c, 400, "", "Unexpected Offset\n");
+	printf("POST \"%s\"\n", filename);
 
-	if (st.st_size != offset)
-		return mg_http_reply(c, 400, "", "Unexpected Offset\n");
+	snprintf(buf, sizeof(buf), "logs/%s", filename);
+	if (stat(buf, &st) != 0) {
+		if (offset != 0)
+			return mg_http_reply(c, 400, "", "Unexpected Offset1\n");
+	} else {
+		if (st.st_size != offset)
+			return mg_http_reply(c, 400, "", "Unexpected Offset2\n");
+	}
 
 	fp = fopen(buf, "a");
 	fputs(hm->body.buf, fp);
