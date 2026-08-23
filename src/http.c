@@ -136,7 +136,7 @@ void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
 	}
 
 	fp = fopen(buf, "a");
-	fputs(hm->body.buf, fp);
+	fwrite(hm->body.buf, 1, hm->body.len, fp);
 	fclose(fp);
 
 	return mg_http_reply(c, 200, "", "");
