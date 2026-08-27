@@ -48,7 +48,9 @@ void post_login(struct mg_connection *c, struct mg_http_message *hm) {
 	char key[32];
 	char buf[512];
 
-	mg_http_creds(hm, key, sizeof(key), key, sizeof(key));
+	if (sscanf(hm->body.buf, "token=%31s", key) != 1)
+		return mg_http_reply(c, 401, "", "");
+
 	if (db_user_get_id(&user_id, key) != 0)
 		return mg_http_reply(c, 401, "", "");
 
