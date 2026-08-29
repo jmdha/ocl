@@ -11,7 +11,7 @@ HTTP 303
 POST http://localhost:8080/api/public/login
 [Form]
 token: abc
-HTTP 400
+HTTP 401
 
 POST http://localhost:8080/api/public/login
-HTTP 400
+HTTP 401

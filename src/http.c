@@ -1,175 +1,188 @@
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include "http.h"
-#include "mongoose.h"
-#include "utils.h"
-#include "db.h"
 
-int get_header_val(struct mg_http_message* hm, char* buf, size_t len, const char* str) {
-	struct mg_str* header = mg_http_get_header(hm, str);
+#define BUF_MAX     (128 * 1024)
+#define MAX_HEADERS 32
+#define MAX_ROUTES  16
 
-	if (!header)
-		return 1;
+typedef struct {
+	const char* method;
+	const char* path;
+	int (*f)(const char**, size_t, char*, size_t);
+} route;
 
-	if (header->len >= len)
-		return 1;
+static route  routes[MAX_ROUTES];
+static size_t route_count;
 
-	memcpy(buf, header->buf, header->len);
-	buf[header->len] = '\0';
+void http_register(const char* method, const char* path, int (*f)(const char**, size_t, char*, size_t)) {
+	routes[route_count++] = (route) { method, path, f };
+}
 
+static const char* reason(int status) {
+	switch (status) {
+		case 200: return "OK";
+		case 201: return "Created";
+		case 303: return "See Other";
+		case 400: return "Bad Request";
+		case 401: return "Unauthorized";
+		case 404: return "Not Found";
+		case 409: return "Conflict";
+		case 411: return "Length Required";
+		default:  return "Internal Server Error";
+	}
+}
+
+typedef struct {
+	const char* method;
+	const char* target;
+	const char* hdrs[2 * MAX_HEADERS];
+	size_t      count;
+	char*       body;
+	size_t      size;
+} request;
+
+// reads and parses the head, then reads the body; returns 0 on success, an http
+// status on bad input, and negative when the peer is gone and no reply is due
+static int request_read(int fd, char* buf, request* r) {
+	size_t body_len = 0;
+	size_t len      = 0;
+	char*  blank;
+
+	for (;;) {
+		buf[len] = '\0';
+		blank    = strstr(buf, "\r\n\r\n");
+		if (blank)
+			break;
+		// a full buffer reads zero bytes, which drops the request like any other error
+		ssize_t rd = read(fd, buf + len, BUF_MAX - len - 1);
+		if (rd <= 0)
+			return -1;
+		len += (size_t) rd;
+	}
+
+	// status line: method, target, version
+	char* nl = strstr(buf, "\r\n");
+	*nl = '\0';
+	r->method = strtok(buf, " ");
+	r->target = strtok(NULL, " ");
+	if (!r->method || !r->target || !strtok(NULL, " "))
+		return 400;
+
+	// header lines up to the blank one, cut into key/value pairs
+	r->count = 0;
+	for (char* line = nl + 2; line < blank;) {
+		char* next = strstr(line, "\r\n");
+		*next = '\0';
+
+		char* colon = strchr(line, ':');
+		if (!colon || r->count == MAX_HEADERS)
+			return 400;
+		*colon = '\0';
+
+		r->hdrs[2 * r->count]     = line;
+		r->hdrs[2 * r->count + 1] = colon + 1 + strspn(colon + 1, " \t");
+		r->count++;
+		line = next + 2;
+	}
+
+	for (size_t i = 0; i < r->count; i++) {
+		if (strcasecmp(r->hdrs[2 * i], "Content-Length") == 0)
+			body_len = strtoull(r->hdrs[2 * i + 1], NULL, 10);
+		// no chunked decoding here, and a silently empty body would be acked as stored
+		if (strcasecmp(r->hdrs[2 * i], "Transfer-Encoding") == 0)
+			return 411;
+	}
+
+	size_t off = (size_t) (blank + 4 - buf);
+	if (off + body_len >= BUF_MAX)
+		return -1;
+
+	while (len < off + body_len) {
+		ssize_t rd = read(fd, buf + len, off + body_len - len);
+		if (rd <= 0)
+			return -1;
+		len += (size_t) rd;
+	}
+	buf[off + body_len] = '\0';
+
+	r->body = buf + off;
+	r->size = BUF_MAX - off;
 	return 0;
 }
 
-int get_header_val_n(struct mg_http_message* hm, size_t* num, const char* str) {
-	struct mg_str* header = mg_http_get_header(hm, str);
-
-	if (!header)
-		return 1;
-
-	if (!mg_str_to_num(*header, 10, num, sizeof(*num)))
-		return 1;
-
-	return 0;
+static int dispatch(request* r) {
+	for (size_t i = 0; i < route_count; i++)
+		if (strcmp(routes[i].method, r->method) == 0 && strcmp(routes[i].path, r->target) == 0)
+			return routes[i].f(r->hdrs, r->count, r->body, r->size);
+	return 404;
 }
 
-void post_users(struct mg_connection* c, struct mg_http_message* hm) {
-	db_user user;
-	size_t user_id;
+static void respond(int fd, int status, char* resp) {
+	// error statuses answer with their reason phrase, whatever is left in buf is not a response
+	if (status >= 400)
+		resp = (char*) reason(status);
 
-	if (gen_ran(user.key, sizeof(user.key)) != 0)
-		return mg_http_reply(c, 500, "", "");
-
-	if (db_user_add(&user, &user_id) != 0)
-		return mg_http_reply(c, 500, "", "");
-
-	return mg_http_reply(c, 201, "", "%.*s", sizeof(user.key), user.key);
-}
-
-void post_login(struct mg_connection *c, struct mg_http_message *hm) {
-	size_t user_id;
-	char key[32];
-	char buf[512];
-
-	if (sscanf(hm->body.buf, "token=%31s", key) != 1)
-		return mg_http_reply(c, 401, "", "");
-
-	if (db_user_get_id(&user_id, key) != 0)
-		return mg_http_reply(c, 401, "", "");
-
-	snprintf(
-		buf,
-		sizeof(buf),
-		"Location: /index.html\r\n"
-		"Set-Cookie: access_token=%s; Path=/; HttpOnly; Secure; SameSite=Lax\r\n"
-		"Content-Type: application/json\r\n",
-		key
-	);
-
-	return mg_http_reply(
-		c,
-		303,
-		buf,
-		""
-	);
-}
-
-void get_upload(struct mg_connection* c, struct mg_http_message* hm) {
-	db_log log;
-	size_t user_id;
-	size_t log_id;
-	char filename[64];
-	char key[32];
-	char buf[128];
-	struct stat st;
-
-	mg_http_creds(hm, key, sizeof(key), key, sizeof(key));
-	if (db_user_get_id(&user_id, key) != 0)
-		return mg_http_reply(c, 401, "", "");
-
-	if (get_header_val(hm, filename, sizeof(filename), "Filename") != 0)
-		return mg_http_reply(c, 400, "", "Invalid Filename\n");
-
-	printf("GET \"%s\"\n", filename);
-
-	if (db_log_get_id(&log_id, user_id, filename) != 0) {
-		log.user_id = user_id;
-		strcpy(log.filename, filename);
-		if (db_log_add(&log, &log_id) != 0)
-			return mg_http_reply(c, 500, "", "");
+	// a handler may prepend its own header lines, separated from the body by a blank line
+	const char* hd  = "";
+	char*       sep = strstr(resp, "\r\n\r\n");
+	if (sep) {
+		sep[2] = '\0';
+		hd     = resp;
+		resp   = sep + 4;
 	}
 
-	snprintf(buf, sizeof(buf), "logs/%s", filename);
-	if (stat(buf, &st) != 0)
-		return mg_http_reply(c, 200, "", "%zu", 0);
-	else
-		return mg_http_reply(c, 200, "", "%zu", st.st_size);
+	dprintf(fd, "HTTP/1.1 %d %s\r\nConnection: close\r\n%sContent-Length: %zu\r\n\r\n%s",
+	        status, reason(status), hd, strlen(resp), resp);
 }
 
-void post_upload(struct mg_connection* c, struct mg_http_message* hm) {
-	size_t offset;
-	size_t log_id;
-	size_t user_id;
-	char key[32];
-	char filename[64];
-	char buf[128];
-	FILE* fp;
-	struct stat st;
+// one blocking request per connection: caddy fronts this, so no keep-alive and no pipelining
+static void serve(int fd) {
+	static char buf[BUF_MAX];
+	request     req = { 0 };
 
-	mg_http_creds(hm, key, sizeof(key), key, sizeof(key));
-	if (db_user_get_id(&user_id, key) != 0)
-		return mg_http_reply(c, 401, "", "");
+	int status = request_read(fd, buf, &req);
+	if (status < 0)
+		return;
+	if (status == 0)
+		status = dispatch(&req);
 
-	if (get_header_val(hm, filename, sizeof(filename), "Filename") != 0)
-		return mg_http_reply(c, 400, "", "Invalid Filename\n");
-
-	if (get_header_val_n(hm, &offset, "Offset") != 0)
-		return mg_http_reply(c, 400, "", "Invalid Offset\n");
-
-	if (db_log_get_id(&log_id, user_id, filename) != 0)
-		return mg_http_reply(c, 400, "", "Unknown Log\n");
-
-	printf("POST \"%s\"\n", filename);
-
-	snprintf(buf, sizeof(buf), "logs/%s", filename);
-	if (stat(buf, &st) != 0) {
-		if (offset != 0)
-			return mg_http_reply(c, 400, "", "Unexpected Offset1\n");
-	} else {
-		if (st.st_size != offset)
-			return mg_http_reply(c, 400, "", "Unexpected Offset2\n");
-	}
-
-	fp = fopen(buf, "a");
-	fwrite(hm->body.buf, 1, hm->body.len, fp);
-	fclose(fp);
-
-	return mg_http_reply(c, 200, "", "");
+	respond(fd, status, req.body);
 }
 
-void ev_handler(struct mg_connection* c, int ev, void* ev_data) {
-	if (ev != MG_EV_HTTP_MSG) return;
-
-	struct mg_http_message *hm = (struct mg_http_message *) ev_data;
-	struct mg_http_serve_opts opts = {
-		.root_dir = "web"
+void http_listen(int port) {
+	// caddy fronts the api, so loopback only
+	struct sockaddr_in sa = {
+		.sin_family      = AF_INET,
+		.sin_addr.s_addr = htonl(INADDR_LOOPBACK),
+		.sin_port        = htons(port),
 	};
 
-	if (mg_match(hm->uri, mg_str("/api/public/users"), NULL)) {
-		if (mg_match(hm->method, mg_str("POST"), NULL))
-			post_users(c, hm);
-		else
-			mg_http_reply(c, 405, "", "Method Not Allowed\n");
-	} else if (mg_match(hm->uri, mg_str("/api/public/login"), NULL)) {
-		if (mg_match(hm->method, mg_str("POST"), NULL))
-			post_login(c, hm);
-		else
-			mg_http_reply(c, 405, "", "Method Not Allowed\n");
-	} else if (mg_match(hm->uri, mg_str("/api/upload"), NULL)) {
-		if (mg_match(hm->method, mg_str("GET"), NULL))
-			get_upload(c, hm);
-		else if (mg_match(hm->method, mg_str("POST"), NULL))
-			post_upload(c, hm);
-		else
-			mg_http_reply(c, 405, "", "Method Not Allowed\n");
-	} else {
-		mg_http_serve_dir(c, hm, &opts);
+	int listener = socket(AF_INET, SOCK_STREAM, 0);
+	int opt      = 1;
+	setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+	if (listener < 0 || bind(listener, (struct sockaddr*) &sa, sizeof(sa)) != 0 || listen(listener, SOMAXCONN) != 0) {
+		perror("http_listen");
+		exit(1);
+	}
+
+	for (;;) {
+		int fd = accept(listener, NULL, NULL);
+		if (fd < 0)
+			continue;
+
+		// a peer that stalls mid request would block the whole server, cut it loose instead
+		struct timeval tv = { .tv_sec = 5 };
+		setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+		serve(fd);
+		close(fd);
 	}
 }

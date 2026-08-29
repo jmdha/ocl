@@ -9,7 +9,7 @@
 jbc* db_users;
 jbc* db_logs;
 
-int db_init() {
+int db_init(void) {
 	int rc = 0;
 
 	if (rc == 0) rc = jbc_init(&db_users, "db/users.jbc", sizeof(db_user), 1 * 1024 * 1024 * 1024);
@@ -18,7 +18,7 @@ int db_init() {
 	return rc;
 }
 
-int db_fini() {
+int db_fini(void) {
 	int rc = 0;
 
 	if (rc == 0) jbc_fini(db_users);
