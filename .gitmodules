@@ -1,0 +1,6 @@
+[submodule "lib/jhttp"]
+	path = lib/jhttp
+	url = https://github.com/jmdha/jhttp.git
+[submodule "lib/jbc"]
+	path = lib/jbc
+	url = https://github.com/jmdha/jbc.git
