@@ -4,3 +4,6 @@
 [submodule "lib/jbc"]
 	path = lib/jbc
 	url = https://github.com/jmdha/jbc.git
+[submodule "lib/warlogs"]
+	path = lib/warlogs
+	url = https://github.com/jmdha/warlogs.git
