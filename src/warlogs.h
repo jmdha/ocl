@@ -29,9 +29,23 @@ typedef struct {
 } wl_version;
 
 typedef struct {
+	int  instance_id;
+	int  difficulty_id;
+	char zone_name[64];
+} wl_zonechange;
+
+typedef struct {
+	int   map_id;
+	char  map_name[64];
+	float x0, x1, y0, y1;
+} wl_mapchange;
+
+typedef struct {
 	wl_kind kind;
 	union {
-		wl_version version;
+		wl_version    version;
+		wl_zonechange zonechange;
+		wl_mapchange  mapchange;
 	};
 } wl_event;
 

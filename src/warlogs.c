@@ -26,6 +26,29 @@ bool wl_parse_version(wl_event* e, const char* str) {
 	) == 6;
 }
 
+bool wl_parse_zonechange(wl_event* e, const char* str) {
+	return sscanf(
+		str,
+		"ZONE_CHANGE,%d,\"%[^\"]\",%d",
+		&e->zonechange.instance_id,
+		&e->zonechange.zone_name,
+		&e->zonechange.difficulty_id
+	) == 3;
+}
+
+bool wl_parse_mapchange(wl_event* e, const char* str) {
+	return sscanf(
+		str,
+		"MAP_CHANGE,%d,\"%[^\"]\",%f,%f,%f,%f",
+		&e->mapchange.map_id,
+		&e->mapchange.map_name,
+		&e->mapchange.x0,
+		&e->mapchange.x1,
+		&e->mapchange.y0,
+		&e->mapchange.y1
+	) == 6;
+}
+
 wl_error wl_parse(int64_t* ts, wl_event* e, const char* str) {
 	int d, m, y, H, M, S, f;
 	int pos;
@@ -44,7 +67,9 @@ wl_error wl_parse(int64_t* ts, wl_event* e, const char* str) {
 		wl_kind kind;
 		bool (*f)(wl_event*, const char*);
 	} cases[] = {
-		{ wl_kind_version, wl_parse_version }
+		{ wl_kind_version,    wl_parse_version },
+		{ wl_kind_zonechange, wl_parse_zonechange },
+		{ wl_kind_mapchange,  wl_parse_mapchange }
 	};
 
 	for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
