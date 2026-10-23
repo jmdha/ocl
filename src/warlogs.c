@@ -31,7 +31,7 @@ bool wl_parse_zonechange(wl_event* e, const char* str) {
 		str,
 		"ZONE_CHANGE,%d,\"%[^\"]\",%d",
 		&e->zonechange.instance_id,
-		&e->zonechange.zone_name,
+		e->zonechange.zone_name,
 		&e->zonechange.difficulty_id
 	) == 3;
 }
@@ -41,7 +41,7 @@ bool wl_parse_mapchange(wl_event* e, const char* str) {
 		str,
 		"MAP_CHANGE,%d,\"%[^\"]\",%f,%f,%f,%f",
 		&e->mapchange.map_id,
-		&e->mapchange.map_name,
+		e->mapchange.map_name,
 		&e->mapchange.x0,
 		&e->mapchange.x1,
 		&e->mapchange.y0,
